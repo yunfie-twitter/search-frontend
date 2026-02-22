@@ -1,0 +1,572 @@
+@charset "UTF-8";
+
+/* --- Core Variables (Polished) --- */
+:root {
+    --primary: #1a73e8; 
+    --text-main: #111827;
+    --text-sub: #6b7280;
+    --bg-base: #fdfdfd; 
+    --bg-surface: #ffffff;
+    --bg-cta: #f8fafc;
+    --border-subtle: rgba(0, 0, 0, 0.06);
+    
+    /* Search Specific */
+    --bg-hover: #f1f3f4;
+    --border: #dfe1e5;
+    --icon-color: #9aa0a6;
+    --shadow-soft: 0 1px 6px rgba(32,33,36,0.18);
+    --shadow-active: 0 8px 20px rgba(32,33,36,0.18);
+    --radius-l: 24px;
+
+    /* Animation Timings */
+    --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ease-slow: cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --primary: #8ab4f8;
+        --text-main: #f3f4f6;
+        --text-sub: #9ca3af;
+        --bg-base: #0a0a0a;
+        --bg-surface: #171717;
+        --bg-cta: #111;
+        --border-subtle: rgba(255, 255, 255, 0.08);
+        
+        --bg-hover: #3c4043;
+        --border: #5f6368;
+        --shadow-soft: 0 1px 6px rgba(0,0,0,0.3);
+        --shadow-active: 0 8px 24px rgba(0,0,0,0.5);
+    }
+}
+
+/* --- Reset & Base --- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html.lenis { height: auto; } 
+.lenis.lenis-smooth { scroll-behavior: auto; } 
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; } 
+.lenis.lenis-stopped { overflow: hidden; } 
+.lenis.lenis-scrolling iframe { pointer-events: none; }
+
+body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg-base);
+    color: var(--text-main);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+/* --- Header --- */
+.nav-header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    padding: 24px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    pointer-events: none; 
+}
+.nav-header > * { pointer-events: auto; }
+
+.brand-logo {
+    font-family: "Merriweather Sans", sans-serif;
+    font-weight: 700;
+    font-style: italic;
+    font-size: 20px;
+    color: var(--text-main);
+    text-decoration: none;
+    letter-spacing: -0.5px;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 24px;
+    background: var(--text-main); 
+    color: var(--bg-base);
+    border-radius: 99px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.2s, opacity 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.back-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    color: var(--bg-base);
+}
+
+/* --- Sections --- */
+section {
+    padding: 100px 24px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* --- Hero Section --- */
+.hero {
+    min-height: 70vh; 
+    max-height: 900px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 100px;
+    
+    /* Stacking Context Fix */
+    position: relative;
+    z-index: 10; 
+}
+
+.hero-sub {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: slideUp 0.6s var(--ease-out) 0.1s forwards;
+}
+
+/* Hero Title: Vertical Stack */
+.hero-title {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.1;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    margin-bottom: 32px;
+    color: var(--text-main);
+    opacity: 0;
+    animation: slideUp 0.6s var(--ease-out) 0.2s forwards;
+    transform-style: preserve-3d;
+    
+    padding-right: 20px; 
+}
+
+.hero-line-1 { 
+    font-size: 40px; 
+    display: block; 
+    margin-bottom: 8px;
+    font-weight: 500; 
+    color: var(--text-sub); 
+}
+
+/* --- Line 2 (透明な検索 + 光マスク) --- */
+.hero-line-2 { 
+    font-size: 64px; 
+    
+    /* inline-blockで文字サイズぴったりにする */
+    display: inline-block; 
+    position: relative;
+    
+    /* はみ出し防止（最重要） */
+    overflow: hidden; 
+    
+    /* 余白を完全に消して光のオーバーランを防ぐ */
+    padding-right: 0; 
+    margin-right: 0; 
+    
+    /* 高さ方向の余白も詰める */
+    line-height: 1.1;
+    vertical-align: bottom;
+}
+
+.hero-line-1, .hero-line-2 {
+    will-change: transform, opacity, filter;
+}
+
+@media (max-width: 600px) {
+    .hero-line-1 { font-size: 28px; }
+    .hero-line-2 { font-size: 48px; }
+    .hero { min-height: 60vh; }
+}
+
+.hero-desc {
+    font-size: 15px;
+    color: var(--text-sub);
+    max-width: 480px;
+    margin-bottom: 48px;
+    opacity: 0;
+    animation: slideUp 0.6s var(--ease-out) 0.3s forwards;
+}
+
+/* --- Search Box --- */
+.hero-search-area {
+    width: 100%;
+    max-width: 584px;
+    opacity: 0;
+    animation: slideUp 0.6s var(--ease-out) 0.4s forwards;
+}
+
+.search-wrapper { width: 100%; position: relative; }
+
+.search-box-wrap {
+    position: relative;
+    height: 48px;
+    border-radius: var(--radius-l);
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding-left: 14px;
+    transition: box-shadow 0.2s, border-color 0.2s, background 0.2s, transform 0.2s;
+    
+    /* High Z-Index for Dropdown Visibility */
+    z-index: 1000;
+}
+.search-box-wrap:hover {
+    box-shadow: var(--shadow-soft);
+    border-color: transparent;
+}
+.search-box-wrap.active {
+    box-shadow: var(--shadow-active);
+    border-color: transparent;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    background: var(--bg-surface);
+    transform: translateY(-1px);
+}
+
+.search-icon-left {
+    width: 20px; height: 20px; fill: var(--icon-color);
+    flex-shrink: 0; margin-right: 12px; pointer-events: none;
+}
+.search-input {
+    flex: 1; height: 100%; border: none; background: transparent;
+    font-size: 16px; color: var(--text-main); min-width: 0; outline: none;
+}
+.search-input::placeholder { color: var(--text-sub); opacity: 0.8; }
+
+.action-btn-area { display: flex; align-items: center; margin-right: 8px; }
+.icon-btn {
+    width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; cursor: pointer; transition: background 0.2s;
+}
+.icon-btn:hover { background: var(--bg-hover); }
+
+.clear-btn, .mic-btn { width: 24px; height: 24px; display: none; }
+.clear-btn svg, .mic-btn svg { width: 100%; height: 100%; fill: var(--icon-color); }
+.mic-btn { display: flex; }
+.mic-btn svg { fill: var(--primary); }
+.search-box-wrap.has-value .mic-btn { display: none; }
+.search-box-wrap.has-value .clear-btn { display: flex; }
+
+.mic-btn.listening svg { display: none; }
+.mic-btn.listening::after {
+    content: ''; width: 14px; height: 14px; background: #ea4335;
+    border-radius: 50%; animation: pulse-red 1.5s infinite;
+}
+@keyframes pulse-red {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(234, 67, 53, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(234, 67, 53, 0); }
+}
+
+.suggest-list {
+    position: absolute; top: 100%; left: 0; right: 0;
+    background: var(--bg-surface);
+    border-top: 1px solid transparent;
+    border-bottom-left-radius: 24px; border-bottom-right-radius: 24px;
+    padding-bottom: 8px;
+    box-shadow: var(--shadow-active);
+    display: none; text-align: left; 
+    color: var(--text-main);
+    
+    /* High Z-Index */
+    z-index: 999;
+}
+@media (prefers-color-scheme: dark) {
+    .suggest-list { border-top: 1px solid var(--border); margin-top: -1px; }
+}
+.search-box-wrap.active .suggest-list { display: block; }
+.suggest-item {
+    padding: 8px 16px; font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; gap: 14px; color: var(--text-main);
+}
+.suggest-item:hover, .suggest-item.selected { background: var(--bg-hover); }
+.suggest-icon { width: 18px; height: 18px; fill: var(--icon-color); min-width: 18px; }
+.suggest-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.suggest-item.is-url .suggest-icon { fill: var(--primary); }
+.suggest-item.is-url .suggest-text { color: var(--primary); }
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Promises --- */
+.promise { 
+    padding-top: 60px; 
+    position: relative;
+    z-index: 1;
+}
+.promise-head { margin-bottom: 60px; }
+.section-label {
+    font-size: 12px; font-weight: 600; color: var(--text-sub);
+    letter-spacing: 0.05em; text-transform: uppercase;
+}
+
+.promise-list { display: flex; flex-direction: column; gap: 60px; max-width: 600px; }
+.promise-item { opacity: 0; display: flex; gap: 24px; align-items: flex-start; }
+.promise-item.visible { animation: fadeReveal 0.5s var(--ease-out) forwards; }
+@keyframes fadeReveal {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.promise-icon { flex-shrink: 0; width: 24px; height: 24px; color: var(--primary); margin-top: 2px; }
+.promise-icon svg { width: 100%; height: 100%; fill: currentColor; }
+.promise-content { flex: 1; }
+.promise-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
+.promise-item:first-child .promise-title { font-size: 19px; color: var(--text-main); }
+.promise-item:first-child .promise-text { color: var(--text-main); opacity: 0.9; }
+.promise-text { font-size: 15px; color: var(--text-sub); line-height: 1.7; }
+
+@media (max-width: 600px) {
+    .promise-list { gap: 40px; }
+    .promise-item { flex-direction: column; gap: 12px; }
+    .promise-icon { margin-top: 0; }
+}
+
+/* --- Philosophy --- */
+.philosophy { 
+    text-align: left; padding: 140px 24px; min-height: 60vh; display: flex; align-items: center; 
+    position: relative; z-index: 1;
+}
+.philo-text {
+    font-size: 22px; font-weight: 400; color: var(--text-main); letter-spacing: 0.02em;
+}
+
+/* --- CTA --- */
+.cta-section { 
+    padding: 80px 24px 120px; 
+    position: relative; z-index: 1;
+}
+.cta-box {
+    background: var(--bg-cta); border-radius: 16px; padding: 60px;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.cta-content { max-width: 400px; }
+.cta-head { font-size: 24px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
+.cta-sub { font-size: 14px; color: var(--text-sub); }
+.cta-btn {
+    flex-shrink: 0; height: 48px; padding: 0 32px;
+    background: var(--text-main); color: var(--bg-base);
+    border-radius: 8px; font-weight: 600; font-size: 14px;
+    text-decoration: none; display: flex; align-items: center;
+    transition: transform 0.2s, background 0.2s;
+}
+.cta-btn:hover { background: var(--primary); transform: translateY(-2px); }
+
+/* --- Footer --- */
+.app-footer {
+    padding: 40px 24px; font-size: 12px; color: var(--text-sub); border-top: 1px solid var(--border-subtle);
+    position: relative; z-index: 1;
+}
+.footer-inner {
+    max-width: 800px; margin: 0 auto;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.footer-links { display: flex; gap: 24px; }
+.footer-link { cursor: pointer; text-decoration: none; color: var(--text-sub); }
+.footer-link:hover { color: var(--text-main); }
+
+@media (max-width: 600px) {
+    .cta-box { flex-direction: column; align-items: flex-start; gap: 32px; padding: 32px; }
+    .cta-btn { width: 100%; justify-content: center; }
+    .footer-inner { flex-direction: column; gap: 20px; align-items: flex-start; }
+}
+
+/* --- Animations --- */
+
+/* Initial Entrance (Preserved) */
+.hero-line-1, .hero-line-2 {
+    filter: blur(6px); opacity: 0; transform: translateY(8px);
+    animation: deepFade 1.6s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+}
+.hero-line-1 { animation-delay: 0.2s; }
+.hero-line-2 { animation-delay: 0.6s; }
+
+@keyframes deepFade { 
+    to { filter: blur(0); opacity: 1; transform: translateY(0); } 
+}
+
+/* Shimmer Effect (Masked & Shortened) */
+.hero-line-2::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    
+    /* 光の幅をさらに狭く（40%） */
+    width: 40%;
+    height: 100%;
+    
+    /* グラデーション */
+    background: linear-gradient(
+        110deg,
+        transparent 0%,
+        rgba(255,255,255,0.6) 45%, 
+        transparent 100%
+    );
+    
+    /* 初期位置 */
+    transform: translateX(-150%) skewX(-20deg);
+    
+    /* アニメーション */
+    animation: shimmer 1.8s cubic-bezier(0.19, 1, 0.22, 1) 1.2s forwards;
+    
+    pointer-events: none;
+}
+
+/* 終了位置調整（手前で消す） */
+@keyframes shimmer {
+    to { transform: translateX(180%) skewX(-20deg); }
+}
+/* --- Line 2 (透明な検索 + 文字マスク光) --- */
+.hero-line-2 { 
+    font-size: 64px; 
+    display: inline-block; 
+    position: relative;
+    /* overflow: hidden;  <-- 文字マスクにするなら不要 */
+    
+    /* ベースの文字色をここで指定（透過させるため） */
+    color: var(--text-main); /* または #fff など */
+}
+
+/* --- Shimmer Effect (Text Mask Mode) --- */
+.hero-line-2::after {
+    content: "透明な検索"; /* 文字を複製して重ねる */
+    position: absolute;
+    top: 0; left: 0;
+    
+    /* 重ねる文字の色を透明にし、背景グラデーションを入れる */
+    color: transparent; 
+    
+    /* 背景グラデーション（光） */
+    background: linear-gradient(
+        110deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.8) 45%, /* 白い光 */
+        rgba(255, 255, 255, 0.0) 55%,
+        transparent 100%
+    );
+    
+    /* 背景を文字の形に切り抜く */
+    -webkit-background-clip: text;
+    background-clip: text;
+    
+    /* 光のサイズと繰り返し防止 */
+    background-size: 50% 100%;
+    background-repeat: no-repeat;
+    
+    /* 初期位置（左外側） */
+    background-position: -150% 0;
+    
+    /* アニメーション */
+    animation: text-shimmer 2.0s cubic-bezier(0.19, 1, 0.22, 1) 1.0s forwards;
+    
+    pointer-events: none;
+    z-index: 1; /* ベース文字の上に */
+}
+
+/* 背景位置を動かすアニメーション */
+@keyframes text-shimmer {
+    0% { background-position: -150% 0; }
+    100% { background-position: 250% 0; }
+}
+/* --- Header --- */
+.nav-header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    padding: 24px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    pointer-events: none; 
+}
+.nav-header > * { pointer-events: auto; }
+
+.brand-logo {
+    /* ...既存スタイル... */
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 24px;
+    /* ...既存スタイル... */
+    font-size: 13px;
+    /* ... */
+}
+
+/* --- Mobile Header Tweaks --- */
+@media (max-width: 600px) {
+    .nav-header {
+        /* パディングを減らして有効幅を広げる */
+        padding: 20px 20px; 
+    }
+    
+    .back-btn {
+        /* ボタンを少しコンパクトに */
+        height: 36px;
+        padding: 0 16px;
+        font-size: 12px;
+    }
+    
+    .brand-logo {
+        /* ロゴも少し小さくしてバランスを取る（任意） */
+        font-size: 18px;
+    }
+}
+/* --- Header --- */
+.nav-header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    padding: 24px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    pointer-events: none; /* 初期はクリックスルー */
+    
+    /* トランジション追加 */
+    transition: padding 0.3s ease, background 0.3s ease, backdrop-filter 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* スクロール時のスタイル（クラス付与時） */
+.nav-header.scrolled {
+    /* 少しパディングを詰めてコンパクトに */
+    padding: 16px 40px;
+    
+    /* すりガラス効果 */
+    background: rgba(253, 253, 253, 0.85); /* var(--bg-base) の透過版 */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    
+    /* 境界線をうっすら入れる（任意） */
+    border-bottom: 1px solid var(--border-subtle);
+    
+    /* ポインターイベントを有効化（背景ができたので） */
+    pointer-events: auto;
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+    .nav-header.scrolled {
+        background: rgba(10, 10, 10, 0.85); /* var(--bg-base) の透過版 */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+}
+
+/* モバイル調整 */
+@media (max-width: 600px) {
+    .nav-header { padding: 20px 20px; }
+    .nav-header.scrolled { padding: 12px 20px; }
+}

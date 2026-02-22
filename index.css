@@ -1,0 +1,291 @@
+/* ===== index.css ===== */
+
+:root {
+  --primary: #1a73e8;
+  --text-main: #202124;
+  --text-sub: #5f6368;
+  --bg-body: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-hover: #f1f3f4;
+  --border: #dfe1e5;
+  --icon-color: #9aa0a6;
+  --shadow-soft: 0 1px 6px rgba(32,33,36,0.18);
+  --shadow-active: 0 4px 12px rgba(32,33,36,0.2);
+  --radius-l: 24px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #8ab4f8;
+    --text-main: #e8eaed;
+    --text-sub: #9aa0a6;
+    --bg-body: #202124;
+    --bg-surface: #303134;
+    --bg-hover: #3c4043;
+    --border: #5f6368;
+    --shadow-soft: 0 1px 6px rgba(0,0,0,0.3);
+    --shadow-active: 0 4px 16px rgba(0,0,0,0.5);
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Noto Sans JP", sans-serif;
+  background: var(--bg-body);
+  color: var(--text-main);
+  height: 100vh;
+  overflow-x: hidden;
+}
+
+/* --- Header/Footer --- */
+.app-header {
+  position: fixed;
+  top: 0; right: 0;
+  padding: 16px 24px;
+  z-index: 10;
+}
+.nav-link { text-decoration: none; color: var(--text-main); font-size: 13px; opacity: 0.8; }
+
+.app-footer {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  padding: 12px 24px;
+  background: var(--bg-body);
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+}
+.footer-link { text-decoration: none; color: var(--text-sub); }
+
+/* --- Layout --- */
+.main {
+  display: flex;
+  justify-content: center;
+  padding-top: 20vh;
+  min-height: 100vh;
+}
+.stage {
+  width: 100%;
+  max-width: 584px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 16px;
+}
+a.logo:hover {
+    transform: perspective(600px) rotateY(-15deg) rotateX(20deg);
+}
+/* --- Logo --- */
+.logo-area {
+  min-height: 120px;
+  margin-bottom: 32px;
+  opacity: .85;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.logo, h1.logo {
+  font-family: "Merriweather Sans", sans-serif;
+  font-weight: 700;
+  font-style: italic;
+  font-size: 72px;
+  line-height: 1;
+  height: 72px;
+  letter-spacing: -1.5px;
+  text-decoration: none;
+  color: var(--text-main);
+  display: inline-block;
+  transition: transform 0.3s;
+}
+
+/* --- Search Box --- */
+.search-container {
+  width: 100%;
+  position: relative;
+  z-index: 100;
+  /* 高さ確保 */
+  min-height: 48px;
+}
+
+.search-box-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 48px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  padding: 0 14px;
+  box-shadow: var(--shadow-soft);
+  transition: box-shadow 0.2s, background-color 0.2s, border-radius 0.1s;
+  will-change: box-shadow, border-radius; /* アニメーション最適化 */
+}
+
+.search-box-wrap:hover {
+  box-shadow: var(--shadow-active);
+  border-color: transparent;
+}
+
+/* PC: アクティブかつサジェストありの場合のみ変形 */
+.search-box-wrap.active.has-suggestions {
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-active);
+  border-color: transparent;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  color: var(--text-main);
+  outline: none;
+  height: 100%;
+  padding: 0 8px;
+  min-width: 0; /* Flexbox内での縮小対応 */
+}
+
+/* アイコン類: SVGサイズを固定してCLS防止 */
+.search-icon-left, .icon-btn svg {
+  width: 20px; height: 20px;
+  fill: var(--text-sub);
+  display: block;
+}
+.search-icon-left {
+  display: flex; align-items: center;
+  flex-shrink: 0;
+}
+.action-btn-area { display: flex; gap: 8px; flex-shrink: 0; }
+.icon-btn {
+  background: none; border: none; cursor: pointer; padding: 4px; display: flex;
+}
+.clear-btn { display: none; }
+.search-box-wrap.has-value .clear-btn { display: block; }
+
+.mobile-back-btn {
+  display: none;
+  background: none; border: none; padding: 4px; margin-right: 8px; cursor: pointer;
+  flex-shrink: 0;
+}
+.mobile-back-btn svg { width: 24px; height: 24px; fill: var(--text-sub); }
+
+
+/* --- Suggest List (Desktop) --- */
+.suggest-list {
+  display: none; /* 初期非表示 */
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-surface);
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 4px 6px rgba(32,33,36,0.28);
+  padding-top: 4px;
+  padding-bottom: 16px;
+  margin: -1px;
+  overflow: hidden;
+  z-index: 10;
+  content-visibility: auto; /* レンダリング最適化 */
+}
+
+/* アクティブかつリストあり */
+.search-box-wrap.active.has-suggestions .suggest-list {
+  display: block;
+}
+
+.suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 16px;
+  height: 48px;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--text-main);
+  /* コンテンツシフト防止 */
+  contain: content; 
+}
+.suggest-item:hover, .suggest-item.active {
+  background: var(--bg-hover);
+}
+.suggest-item svg {
+  width: 18px; height: 18px;
+  fill: var(--text-sub);
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+.suggest-item span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.suggest-item span strong { font-weight: 700; }
+
+
+/* ===== Mobile Full Screen Mode ===== */
+@media (max-width: 600px) {
+  .logo, h1.logo { font-size: 56px; height: 56px; }
+  .logo-area { min-height: 100px; margin-bottom: 24px; }
+
+  body.mobile-search-active {
+    overflow: hidden;
+  }
+
+  body.mobile-search-active .logo-area,
+  body.mobile-search-active .app-header,
+  body.mobile-search-active .app-footer {
+    display: none;
+  }
+
+  body.mobile-search-active .main { padding: 0; }
+  body.mobile-search-active .stage { max-width: 100%; padding: 0; }
+  
+  body.mobile-search-active .search-container {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--bg-body);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  body.mobile-search-active .search-box-wrap {
+    flex-shrink: 0;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    box-shadow: none;
+    height: 60px;
+    background: var(--bg-surface);
+  }
+  
+  /* モバイルでは角丸変形なし */
+  body.mobile-search-active .search-box-wrap.active.has-suggestions {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    box-shadow: none;
+    border-color: transparent;
+    border-bottom: 1px solid var(--border);
+  }
+
+  body.mobile-search-active .mobile-back-btn { display: block; }
+  body.mobile-search-active .search-icon-left { display: none; }
+
+  body.mobile-search-active .suggest-list {
+    display: block !important;
+    width: 100%;
+    height: auto;
+    flex: 1;
+    overflow-y: auto;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+    background: var(--bg-body);
+    overscroll-behavior: contain; /* スクロール連鎖防止 */
+  }
+}

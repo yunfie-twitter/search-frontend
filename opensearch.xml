@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/"
+                       xmlns:moz="http://www.mozilla.org/2006/browser/search/">
+    
+    <!-- 検索エンジンの表示名 -->
+    <ShortName>wholphin</ShortName>
+    
+    <!-- 検索エンジンの説明 -->
+    <Description>wholphin で検索</Description>
+    
+    <!-- 入力エンコーディング -->
+    <InputEncoding>UTF-8</InputEncoding>
+    
+    <!-- アイコン（Faviconのパスを指定） -->
+    <Image width="16" height="16" type="image/x-icon">https://wholphin.net/favicon.ico</Image>
+    
+    <!-- 検索用URLテンプレート
+         {searchTerms} に検索クエリが入ります。
+         search.php または index.php?q=... など、実際の検索エンドポイントに合わせてください。
+    -->
+    <Url type="text/html" method="get" template="https://wholphin.net/search?q={searchTerms}"/>
+    
+    <!-- サジェスト（検索候補）APIのURLテンプレート（もし対応させるなら）
+         OpenSearch形式のJSONを返す必要があります。
+         対応していない場合はこの行を削除してください。
+    -->
+    <Url type="application/x-suggestions+json" method="get" template="https://wholphin.net/suggest_opensearch?q={searchTerms}"/>
+    
+    <!-- ホームページのURL -->
+    <moz:SearchForm>https://wholphin.net/</moz:SearchForm>
+    
+</OpenSearchDescription>
