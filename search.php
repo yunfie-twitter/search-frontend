@@ -860,6 +860,13 @@ const app = {
     goToPage(page) {
         if (page < 1 || page > this.state.totalPages || page === this.state.page) return;
         this.state.page = page;
+        
+        // 🔥 ページ遷移時に前の結果を完全にクリア
+        this.state.results = [];
+        this.refs.container.innerHTML = '';
+        this.refs.stats.textContent = '';
+        this.refs.pagination.innerHTML = '';
+        
         this.updateURL();
         this.fetchData();
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -868,6 +875,9 @@ const app = {
     async fetchData() {
         if (this.state.loading) return;
         this.state.loading = true;
+        
+        // 🔥 データ取得前に必ず前の結果をクリア
+        this.state.results = [];
         this.renderSkeleton();
 
         try {
