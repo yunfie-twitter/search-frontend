@@ -385,6 +385,33 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
 .loader-trigger.visible { opacity: 1; }
 .spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.load-more-btn {
+    display: block;
+    margin: 32px auto;
+    padding: 12px 32px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-m);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    box-shadow: 0 2px 8px rgba(26,115,232,0.2);
+}
+.load-more-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(26,115,232,0.3);
+}
+.load-more-btn:active {
+    transform: translateY(0);
+}
+.load-more-btn.hidden {
+    display: none;
+}
+
 .modal { position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; }
 .modal.open { display: flex; }
 .modal-content { max-width: 95vw; max-height: 90vh; display: flex; flex-direction: column; align-items: center; }
@@ -436,6 +463,7 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
         <div class="content-area">
             <div id="stats" class="stats"></div>
             <div id="resultsContainer"></div>
+            <button id="loadMoreBtn" class="load-more-btn hidden" onclick="app.loadMore()">さらに表示</button>
             <div id="loader" class="loader-trigger"><div class="spinner"></div></div>
         </div>
     </main>
@@ -462,6 +490,7 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
 
 <script>
 const API_ENDPOINT = 'https://api.p2pear.asia/search';
+const PAGES_PER_BATCH = 5; // Web検索は5ページごとに手動ロード
 
 const CookieManager = {
     set(name, value, days = 365) {
@@ -506,6 +535,7 @@ const app = {
         container: document.getElementById('resultsContainer'),
         stats: document.getElementById('stats'),
         loader: document.getElementById('loader'),
+        loadMoreBtn: document.getElementById('loadMoreBtn'),
         main: document.getElementById('main'),
         mobileBackBtn: document.getElementById('mobileBackBtn'),
         safesearchBtn: document.getElementById('safesearchBtn'),
@@ -531,7 +561,9 @@ const app = {
         this.setupVoiceInput();
         this.setupSafesearch();
         
+        // Web検索以外は無限スクロール
         this.observer = new IntersectionObserver((entries) => {
+            if (this.state.type === 'web') return; // Web検索は手動
             if (entries[0].isIntersecting && !this.state.loading && this.state.hasMore[this.state.type]) {
                 console.log('[無限スクロール] トリガー検知');
                 this.loadMore();
@@ -786,6 +818,7 @@ const app = {
         this.updateTabUI();
         this.updateURL();
         this.renderResults();
+        this.updateLoadMoreButton();
         if (this.state.results[type].length === 0 && this.state.q) {
             if (this.state.loading) {
                 this.state.pendingFetch = { q: this.state.q, type: this.state.type, reset: true };
@@ -812,6 +845,7 @@ const app = {
         this.state.oembed = { cache: {}, open: {} };
         this.refs.container.innerHTML = '';
         this.refs.stats.textContent = '';
+        this.refs.loadMoreBtn.classList.add('hidden');
     },
 
     updateURL() {
@@ -829,6 +863,7 @@ const app = {
 
         this.state.loading = true;
         this.toggleLoader(true);
+        this.refs.loadMoreBtn.classList.add('hidden');
 
         if (isInitial && this.state.results[type].length === 0) {
             this.renderSkeleton();
@@ -836,39 +871,35 @@ const app = {
 
         try {
             const safesearchParam = `&safesearch=${this.state.safesearch}&lang=ja`;
+            const url = `${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=${type}&pages=${page}${safesearchParam}`;
+            console.log(`[API Request] ${url}`);
             
             if (type === 'web' && isInitial && !this.state.panelData) {
                 const panelPromise = fetch(`${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=panel${safesearchParam}`);
-                const webPromise = fetch(`${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=${type}&pages=${page}${safesearchParam}`);
+                const webPromise = fetch(url);
                 const [panelRes, webRes] = await Promise.all([panelPromise, webPromise]);
                 const panelData = await panelRes.json();
                 const webData = await webRes.json();
                 this.state.panelData = panelData;
                 
-                // APIは累積で返すので、新規データのみを追加
                 const allResults = webData.results || [];
                 const newResults = allResults.slice(prevCount);
                 this.state.results[type] = allResults;
                 this.state.totalCount = webData.count || allResults.length;
                 
-                console.log(`[fetchData] 全体=${allResults.length}, 新規=${newResults.length}`);
+                console.log(`[API Response] 全体=${allResults.length}, 新規=${newResults.length}`);
                 
                 if (newResults.length > 0) {
                     const maxPage = Math.max(...allResults.map(r => r.page || 1));
                     this.state.pages[type] = maxPage + 1;
                     this.state.hasMore[type] = true;
-                    console.log(`[fetchData] 次ページあり page=${this.state.pages[type]}`);
                 } else {
                     this.state.hasMore[type] = false;
-                    console.log(`[fetchData] 次ページなし`);
                 }
             } else {
-                const url = `${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=${type}&pages=${page}${safesearchParam}`;
-                console.log(`[API Request] ${url}`);
                 const res = await fetch(url);
                 const data = await res.json();
                 
-                // APIは累積で返すので、新規データのみを追加
                 const allResults = data.results || [];
                 const newResults = allResults.slice(prevCount);
                 this.state.results[type] = allResults;
@@ -880,10 +911,8 @@ const app = {
                     const maxPage = Math.max(...allResults.map(r => r.page || 1));
                     this.state.pages[type] = maxPage + 1;
                     this.state.hasMore[type] = true;
-                    console.log(`[fetchData] 次ページあり page=${this.state.pages[type]}`);
                 } else {
                     this.state.hasMore[type] = false;
-                    console.log(`[fetchData] 次ページなし`);
                 }
             }
 
@@ -894,16 +923,35 @@ const app = {
             this.state.hasMore[type] = false;
         } finally {
             this.state.loading = false;
-            this.toggleLoader(this.state.hasMore[type]);
+            this.updateLoadMoreButton();
+            this.toggleLoader(this.state.type !== 'web' && this.state.hasMore[type]);
             this.flushPendingFetch();
         }
     },
 
     loadMore() {
         const type = this.state.type;
-        console.log(`[loadMore] hasMore=${this.state.hasMore[type]}, loading=${this.state.loading}`);
+        console.log(`[loadMore] type=${type}, hasMore=${this.state.hasMore[type]}, loading=${this.state.loading}`);
+        
+        if (type === 'web') {
+            // Web検索は5ページ分まとめて取得
+            const currentPage = this.state.pages[type];
+            const targetPage = Math.min(currentPage + PAGES_PER_BATCH - 1, currentPage + PAGES_PER_BATCH);
+            console.log(`[loadMore Web] ${currentPage}ページから${targetPage}ページまで取得`);
+            this.state.pages[type] = targetPage;
+        }
+        
         if (this.state.hasMore[type] && !this.state.loading) {
             this.fetchData(false);
+        }
+    },
+
+    updateLoadMoreButton() {
+        const type = this.state.type;
+        if (type === 'web' && this.state.hasMore[type] && !this.state.loading) {
+            this.refs.loadMoreBtn.classList.remove('hidden');
+        } else {
+            this.refs.loadMoreBtn.classList.add('hidden');
         }
     },
 
@@ -1091,6 +1139,8 @@ const app = {
         else if (type === 'video') this.renderVideoList(list);
         else if (type === 'news') this.renderNewsList(list);
         else if (type === 'social') this.renderSocialList(list);
+        
+        this.updateLoadMoreButton();
     },
 
     renderWebList(list) {
