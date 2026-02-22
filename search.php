@@ -28,7 +28,7 @@ $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
     <meta name="theme-color" content="#ffffff">
     <link rel="apple-touch-icon" href="/android-chrome-192x192.png">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://cf866966.cloudfree.jp/">
+    <meta name="twitter:url" content="https://wholphin.net/">
     <meta name="twitter:title" content="wholphin - 高速でシンプルな検索体験">
     <meta name="twitter:description" content="wholphin は高速でシンプルな検索体験を提供する日本語対応の検索サービスです。">
 
