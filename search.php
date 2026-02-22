@@ -447,13 +447,13 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
             <span class="footer-link">プライバシー</span>
             <span class="footer-link">利用規約</span>
             <span style="flex:1"></span>
-            <span>© 2026 wholphin search</span>
+            <span>&copy; 2026 wholphin search</span>
         </div>
     </footer>
 </div>
 
 <div id="modal" class="modal" onclick="if(event.target===this) modal.close()">
-    <div class="close-btn" onclick="modal.close()">×</div>
+    <div class="close-btn" onclick="modal.close()">&times;</div>
     <div class="modal-content">
         <div class="modal-img-wrapper"><img id="modalImg" src=""></div>
         <div style="color:#e8eaed; margin-top:16px; font-size:15px; text-align:center; padding:0 16px;" id="modalTitle"></div>
@@ -823,9 +823,8 @@ const app = {
         if (this.state.loading) return;
         const type = this.state.type;
         const page = this.state.pages[type];
-        const prevResultCount = this.state.results[type].length;
 
-        console.log(`[fetchData] type=${type}, page=${page}, prevCount=${prevResultCount}`);
+        console.log(`[fetchData] type=${type}, page=${page}`);
 
         this.state.loading = true;
         this.toggleLoader(true);
@@ -847,6 +846,19 @@ const app = {
                 const newItems = webData.results || [];
                 this.state.results[type] = [...this.state.results[type], ...newItems];
                 this.state.totalCount = webData.count || this.state.results[type].length;
+                
+                // 取得した結果の最大page番号をチェック
+                const maxPageInResults = Math.max(...newItems.map(r => r.page || 1));
+                console.log(`[fetchData] 取得結果の最大page=${maxPageInResults}`);
+                
+                if (maxPageInResults >= page) {
+                    // 次のページがある可能性がある
+                    this.state.pages[type] = maxPageInResults + 1;
+                    this.state.hasMore[type] = true;
+                } else {
+                    // これ以上ページがない
+                    this.state.hasMore[type] = false;
+                }
             } else {
                 const url = `${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=${type}&pages=${page}${safesearchParam}`;
                 console.log(`[API Request] ${url}`);
@@ -856,21 +868,27 @@ const app = {
                 const newItems = data.results || [];
                 this.state.results[type] = [...this.state.results[type], ...newItems];
                 this.state.totalCount = data.count || this.state.results[type].length;
-            }
-
-            const currentResultCount = this.state.results[type].length;
-            console.log(`[fetchData] 取得後 count=${currentResultCount}, 増加分=${currentResultCount - prevResultCount}`);
-
-            // 新しい結果が取得できたかチェック
-            if (currentResultCount > prevResultCount) {
-                // 結果が増えた = 次のページが存在する可能性がある
-                this.state.pages[type]++;
-                this.state.hasMore[type] = true;
-                console.log(`[fetchData] 次ページあり、page++して${this.state.pages[type]}に`);
-            } else {
-                // 結果が増えなかった = これ以上ページがない
-                this.state.hasMore[type] = false;
-                console.log(`[fetchData] 次ページなし、hasMore=false`);
+                
+                // 取得した結果の最大page番号をチェック
+                if (newItems.length > 0) {
+                    const maxPageInResults = Math.max(...newItems.map(r => r.page || page));
+                    console.log(`[fetchData] 取得結果の最大page=${maxPageInResults}, リクエストpage=${page}`);
+                    
+                    if (maxPageInResults >= page) {
+                        // 次のページがある可能性がある
+                        this.state.pages[type] = maxPageInResults + 1;
+                        this.state.hasMore[type] = true;
+                        console.log(`[fetchData] 次ページあり、page=${this.state.pages[type]}に更新`);
+                    } else {
+                        // これ以上ページがない
+                        this.state.hasMore[type] = false;
+                        console.log(`[fetchData] 次ページなし`);
+                    }
+                } else {
+                    // 結果が0件 = これ以上ページがない
+                    this.state.hasMore[type] = false;
+                    console.log(`[fetchData] 結果0件、次ページなし`);
+                }
             }
 
             this.renderResults();
