@@ -533,7 +533,7 @@ const app = {
         
         this.observer = new IntersectionObserver((entries) => {
             if (entries[0].isIntersecting && !this.state.loading && this.state.hasMore[this.state.type]) {
-                console.log('Infinite scroll triggered, loading more...');
+                console.log('[無限スクロール] トリガー検知');
                 this.loadMore();
             }
         }, { rootMargin: '200px' });
@@ -823,6 +823,9 @@ const app = {
         if (this.state.loading) return;
         const type = this.state.type;
         const page = this.state.pages[type];
+        const prevResultCount = this.state.results[type].length;
+
+        console.log(`[fetchData] type=${type}, page=${page}, prevCount=${prevResultCount}`);
 
         this.state.loading = true;
         this.toggleLoader(true);
@@ -845,26 +848,34 @@ const app = {
                 this.state.results[type] = [...this.state.results[type], ...newItems];
                 this.state.totalCount = webData.count || this.state.results[type].length;
             } else {
-                const res = await fetch(`${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=${type}&pages=${page}${safesearchParam}`);
+                const url = `${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=${type}&pages=${page}${safesearchParam}`;
+                console.log(`[API Request] ${url}`);
+                const res = await fetch(url);
                 const data = await res.json();
+                console.log(`[API Response] results count=${data.results?.length || 0}`);
                 const newItems = data.results || [];
                 this.state.results[type] = [...this.state.results[type], ...newItems];
                 this.state.totalCount = data.count || this.state.results[type].length;
             }
 
-            // 新しい結果がない場合は終了
-            if (!this.state.results[type] || this.state.results[type].length === 0) {
-                this.state.hasMore[type] = false;
-            } else {
-                // APIから結果が返ってきた場合はページを増やす
+            const currentResultCount = this.state.results[type].length;
+            console.log(`[fetchData] 取得後 count=${currentResultCount}, 増加分=${currentResultCount - prevResultCount}`);
+
+            // 新しい結果が取得できたかチェック
+            if (currentResultCount > prevResultCount) {
+                // 結果が増えた = 次のページが存在する可能性がある
                 this.state.pages[type]++;
-                // 結果が少ない場合は終了の可能性があるが、とりあえず継続
                 this.state.hasMore[type] = true;
+                console.log(`[fetchData] 次ページあり、page++して${this.state.pages[type]}に`);
+            } else {
+                // 結果が増えなかった = これ以上ページがない
+                this.state.hasMore[type] = false;
+                console.log(`[fetchData] 次ページなし、hasMore=false`);
             }
 
             this.renderResults();
         } catch (e) {
-            console.error(e);
+            console.error('[fetchData] エラー:', e);
             this.refs.stats.textContent = "読み込みエラーが発生しました";
             this.state.hasMore[type] = false;
         } finally {
@@ -875,8 +886,9 @@ const app = {
     },
 
     loadMore() {
-        console.log(`loadMore called: hasMore=${this.state.hasMore[this.state.type]}, loading=${this.state.loading}`);
-        if (this.state.hasMore[this.state.type] && !this.state.loading) {
+        const type = this.state.type;
+        console.log(`[loadMore] hasMore=${this.state.hasMore[type]}, loading=${this.state.loading}`);
+        if (this.state.hasMore[type] && !this.state.loading) {
             this.fetchData(false);
         }
     },
