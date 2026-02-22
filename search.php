@@ -884,16 +884,16 @@ const app = {
                 this.state.panelData = panelData;
                 this.state.results = webData.results || [];
                 this.state.totalCount = webData.count || 0;
-                this.state.totalPages = Math.ceil(this.state.totalCount / 10) || 1;
+                this.calculateTotalPages();
             } else {
                 const res = await fetch(url);
                 const data = await res.json();
                 this.state.results = data.results || [];
                 this.state.totalCount = data.count || 0;
-                this.state.totalPages = Math.ceil(this.state.totalCount / 10) || 1;
+                this.calculateTotalPages();
             }
 
-            console.log(`[fetchData] page=${this.state.page}, results=${this.state.results.length}, total=${this.state.totalCount}`);
+            console.log(`[API Response] count=${this.state.totalCount}, results.length=${this.state.results.length}, calculatedPages=${this.state.totalPages}`);
             this.renderResults();
             this.renderPagination();
         } catch (e) {
@@ -904,6 +904,30 @@ const app = {
         } finally {
             this.state.loading = false;
         }
+    },
+
+    calculateTotalPages() {
+        const count = this.state.totalCount;
+        const resultsLen = this.state.results.length;
+        
+        // APIのcountがページ数なのか総件数なのかを自動判定
+        // 例: count=5, results.length=10 → countはページ数
+        // 例: count=50, results.length=10 → countは総件数
+        if (count > 0 && resultsLen > 0) {
+            if (count <= resultsLen * 2) {
+                // countが結果数の2倍以下なら、countはおそらくページ数
+                console.log(`[calculateTotalPages] count <= resultsLen*2 (${count} <= ${resultsLen * 2}) → countはページ数と判定`);
+                this.state.totalPages = count;
+            } else {
+                // countが大きければ総件数とみなして1ページ=10件で計算
+                console.log(`[calculateTotalPages] count > resultsLen*2 (${count} > ${resultsLen * 2}) → countは総件数と判定`);
+                this.state.totalPages = Math.ceil(count / 10);
+            }
+        } else {
+            this.state.totalPages = 1;
+        }
+        
+        console.log(`[calculateTotalPages] Final: totalPages=${this.state.totalPages}`);
     },
 
     renderSkeleton() {
