@@ -377,26 +377,6 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
     gap: 8px;
     margin: 40px 0;
     padding: 20px 0;
-    overflow-x: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-}
-
-.pagination::-webkit-scrollbar {
-    height: 6px;
-}
-
-.pagination::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.pagination::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 3px;
-}
-
-.pagination::-webkit-scrollbar-thumb:hover {
-    background: var(--text-sub);
 }
 
 .pagination-btn {
@@ -464,7 +444,7 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
     .video-item { flex-direction: column; gap: 10px; }
     .video-thumb { width: 100%; aspect-ratio: 16/9; }
     .image-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-    .pagination { gap: 4px; padding: 16px 8px; margin: 20px 0; justify-content: flex-start; }
+    .pagination { gap: 4px; padding: 16px 8px; margin: 20px 0; justify-content: center; flex-wrap: wrap; }
     .pagination-btn { min-width: 32px; height: 32px; font-size: 12px; padding: 0 8px; }
     .pagination-btn.nav { padding: 0 12px; font-size: 12px; }
     .pagination-logo { display: none; }
@@ -561,15 +541,15 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
 </div>
 
 <script>
-// Lenis Smooth Scroll初期化
+// Lenis Smooth Scroll初期化 - パフォーマンス向上版
 const lenis = new Lenis({
-    duration: 1.2,
+    duration: 0.8,
     easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
     direction: 'vertical',
     gestureDirection: 'vertical',
     smooth: true,
     smoothTouch: false,
-    touchMultiplier: 2
+    touchMultiplier: 1.5
 });
 
 function raf(time) {
@@ -725,6 +705,7 @@ const app = {
                 this.refs.input.value = this.state.q;
                 this.toggleClearBtn();
                 this.updateTabUI();
+                this.updatePageTitle();
                 this.fetchData();
             }
         };
@@ -890,6 +871,10 @@ const app = {
         this.refs.main.setAttribute('data-mode', this.state.type);
     },
 
+    updatePageTitle() {
+        document.title = `${this.state.q} - wholphin 検索`;
+    },
+
     switchTab(type) {
         if (this.state.type === type) return;
         this.state.type = type;
@@ -910,6 +895,7 @@ const app = {
         this.refs.container.innerHTML = '';
         this.refs.stats.textContent = '';
         this.refs.pagination.innerHTML = '';
+        this.updatePageTitle();
         this.updateURL();
         this.fetchData();
     },
@@ -923,7 +909,6 @@ const app = {
         if (page < 1 || page > this.state.totalPages || page === this.state.page) return;
         this.state.page = page;
         
-        // 🔥 ページ遷移時に前の結果を完全にクリア
         this.state.results = [];
         this.refs.container.innerHTML = '';
         this.refs.stats.textContent = '';
@@ -931,14 +916,13 @@ const app = {
         
         this.updateURL();
         this.fetchData();
-        lenis.scrollTo(0, { duration: 0.8, easing: (t) => 1 - Math.pow(1 - t, 3) });
+        lenis.scrollTo(0, { duration: 0.6, easing: (t) => 1 - Math.pow(1 - t, 3) });
     },
 
     async fetchData() {
         if (this.state.loading) return;
         this.state.loading = true;
         
-        // 🔥 データ取得前に必ず前の結果をクリア
         this.state.results = [];
         this.renderSkeleton();
 
@@ -982,16 +966,11 @@ const app = {
         const count = this.state.totalCount;
         const resultsLen = this.state.results.length;
         
-        // APIのcountがページ数なのか総件数なのかを自動判定
-        // 例: count=5, results.length=10 → countはページ数
-        // 例: count=50, results.length=10 → countは総件数
         if (count > 0 && resultsLen > 0) {
             if (count <= resultsLen * 2) {
-                // countが結果数の2倍以下なら、countはおそらくページ数
                 console.log(`[calculateTotalPages] count <= resultsLen*2 (${count} <= ${resultsLen * 2}) → countはページ数と判定`);
                 this.state.totalPages = count;
             } else {
-                // countが大きければ総件数とみなして1ページ=10件で計算
                 console.log(`[calculateTotalPages] count > resultsLen*2 (${count} > ${resultsLen * 2}) → countは総件数と判定`);
                 this.state.totalPages = Math.ceil(count / 10);
             }
@@ -1031,21 +1010,17 @@ const app = {
 
         let html = '';
         
-        // Previous
         html += `<button class="pagination-btn nav ${current === 1 ? 'disabled' : ''}" onclick="app.goToPage(${current - 1})" ${current === 1 ? 'disabled' : ''}>&lt; 前へ</button>`;
         
-        // 📱 スマホ: 現在ページ前後2-3ページ表示(画面幅に応じて)
-        // 🖥️ PC: 前後2ページ + ロゴ後にも表示
         if (isMobile) {
-            // スマホ: 画面幅に応じて3-6ページ表示
             const screenWidth = window.innerWidth;
-            let pagesEachSide = 1; // デフォルト前後1ページ(合計3ページ)
+            let pagesEachSide = 1;
             
             if (screenWidth >= 480) {
-                pagesEachSide = 2; // 480px以上なら前後2ページ(合計5ページ)
+                pagesEachSide = 2;
             }
             if (screenWidth >= 600) {
-                pagesEachSide = 2.5; // 600px以上なら前後2-3ページ(合計6ページ)
+                pagesEachSide = 2.5;
             }
             
             const startPage = Math.max(1, current - Math.floor(pagesEachSide));
@@ -1070,14 +1045,12 @@ const app = {
                 }
             }
             
-            // Wholphin logo (PCのみ)
             html += `<div class="pagination-logo">
                 <svg height="32" viewBox="0 0 120 32" fill="none">
                     <text x="0" y="24" font-family="Merriweather Sans, sans-serif" font-size="20" font-weight="700" font-style="italic" fill="var(--primary)">wholphin</text>
                 </svg>
             </div>`;
             
-            // More pages after logo
             const startPage2 = endPage + 1;
             const endPage2 = Math.min(total, startPage2 + 4);
             
@@ -1090,7 +1063,6 @@ const app = {
             }
         }
         
-        // Next
         html += `<button class="pagination-btn nav ${current === total ? 'disabled' : ''}" onclick="app.goToPage(${current + 1})" ${current === total ? 'disabled' : ''}>次へ &gt;</button>`;
         
         this.refs.pagination.innerHTML = html;
