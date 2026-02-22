@@ -1,5 +1,5 @@
 <?php
-// search-3.php (既存仕様維持・完全版 + Misskey画像対応 + ナレッジパネル)
+// search.php - セーフサーチ対応版 + Cookie保存 + 自動読み込み
 
 // クエリ取得
 $q = isset($_GET['q']) ? $_GET['q'] : '';
@@ -32,7 +32,6 @@ $q = trim($q);
     <meta name="twitter:description" content="wholphin は高速でシンプルな検索体験を提供する日本語対応の検索サービスです。">
 
     <link rel="canonical" href="https://wholphin.net/">
-<!-- CLS対策: display=optional と preload -->
 <link rel="preload" href="https://fonts.gstatic.com/s/merriweathersans/v28/2-c79IRs1JiJN1FRAMjTN5zd9vgsFHXwcjfj9zlcxZI.woff2" as="font" type="font/woff2" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Merriweather+Sans:ital,wght@0,300..800;1,300..800&family=Noto+Sans+JP:wght@100..900&display=optional" rel="stylesheet">
 <link rel="shortcut icon" href="/favicon.ico">
@@ -56,7 +55,6 @@ $q = trim($q);
     --footer-bg: #f2f2f2;
 }
 
-/* --- Dark Mode Overrides --- */
 @media (prefers-color-scheme: dark) {
     :root {
         --primary: #8ab4f8;
@@ -91,14 +89,12 @@ body {
 a { text-decoration: none; color: inherit; }
 button { border: none; background: none; cursor: pointer; padding: 0; }
 
-/* --- Layout Structure --- */
 .app-wrapper {
     flex: 1;
     display: flex;
     flex-direction: column;
 }
 
-/* --- Header --- */
 header {
     position: sticky; top: 0; z-index: 1000;
     background: var(--header-bg);
@@ -122,7 +118,6 @@ header {
 }
 @media (prefers-color-scheme: dark) { .logo { color: #fff; } }
 
-/* --- Search Box --- */
 .search-container {
     flex: 1; max-width: 690px; position: relative;
 }
@@ -173,7 +168,6 @@ header {
 }
 .search-input::placeholder { color: var(--text-sub); opacity: 0.8; }
 
-/* Right Actions */
 .action-btn-area {
     height: 44px;
     display: flex; align-items: center;
@@ -196,14 +190,12 @@ header {
 }
 .clear-btn svg, .mic-btn svg { width: 100%; height: 100%; fill: var(--icon-color); }
 
-/* Mic & Clear Logic */
 .mic-btn { display: flex; }
 .mic-btn svg { fill: var(--primary); }
 
 .search-box-wrap.has-value .mic-btn { display: none; }
 .search-box-wrap.has-value .clear-btn { display: flex; }
 
-/* Voice Active State */
 .mic-btn.listening svg { display: none; }
 .mic-btn.listening::after {
     content: ''; width: 14px; height: 14px;
@@ -216,7 +208,69 @@ header {
     100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(234, 67, 53, 0); }
 }
 
-/* Suggest Dropdown */
+/* セーフサーチ設定ボタン */
+.safesearch-btn {
+    position: relative;
+}
+
+.safesearch-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-m);
+    box-shadow: var(--shadow-soft);
+    min-width: 180px;
+    display: none;
+    z-index: 1001;
+}
+
+.safesearch-menu.open {
+    display: block;
+}
+
+.safesearch-menu-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    color: var(--text-main);
+    transition: background 0.2s;
+}
+
+.safesearch-menu-item:hover {
+    background: var(--bg-hover);
+}
+
+.safesearch-menu-item:first-child {
+    border-radius: var(--radius-m) var(--radius-m) 0 0;
+}
+
+.safesearch-menu-item:last-child {
+    border-radius: 0 0 var(--radius-m) var(--radius-m);
+}
+
+.safesearch-menu-item.active {
+    background: var(--bg-hover);
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.safesearch-menu-item .check-icon {
+    width: 18px;
+    height: 18px;
+    fill: var(--primary);
+    display: none;
+}
+
+.safesearch-menu-item.active .check-icon {
+    display: block;
+}
+
 .suggest-list {
     position: absolute; top: 100%; left: 0; right: 0;
     background: var(--bg-surface);
@@ -243,7 +297,6 @@ header {
 .suggest-icon { width: 18px; height: 18px; fill: var(--icon-color); flex-shrink: 0; }
 .suggest-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
 
-/* --- Tabs --- */
 .tabs {
     display: flex; gap: 24px; margin-left: 105px; padding-top: 16px;
     overflow-x: auto;
@@ -260,7 +313,6 @@ header {
 .tab:hover { color: var(--primary); }
 .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
 
-/* --- Main Content --- */
 main {
     width: 100%; max-width: 1200px; padding: 24px;
 }
@@ -273,7 +325,6 @@ main {
 
 .stats { font-size: 14px; color: var(--text-sub); margin-bottom: 24px; height: 20px; }
 
-/* --- Knowledge Panel --- */
 .knowledge-panel {
     border: 1px solid var(--border);
     border-radius: var(--radius-m);
@@ -380,7 +431,6 @@ main {
     }
 }
 
-/* --- Results Items (Web, Video, Image, News, Social) --- */
 .web-item { margin-bottom: 36px; }
 .web-cite {
     display: flex; align-items: center; gap: 10px;
@@ -406,11 +456,9 @@ main {
     .web-cite img { border: 1px solid #5f6368; }
 }
 
-/* Video */
 .video-item { display: flex; gap: 16px; margin-bottom: 24px; cursor: pointer; border-radius: 14px; padding: 10px; transition: background 0.15s, box-shadow 0.15s, border-color 0.15s; border: 1px solid transparent; }
 .video-item:hover .video-title { color: var(--primary); }
 
-/* アクティブ（再生中）の強調を強める */
 .video-item.is-active {
     background: var(--bg-hover);
     border-color: rgba(26,115,232,0.45);
@@ -431,7 +479,6 @@ main {
 }
 .video-thumb img { width: 100%; height: 100%; object-fit: cover; }
 
-/* 再生中はサムネ枠ごと消す（枠が残る問題の修正） */
 .video-item.is-active .video-thumb { display: none; }
 
 .video-thumb::after {
@@ -529,7 +576,6 @@ main {
     background: var(--bg-surface);
 }
 
-/* News Item Style */
 .news-item { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
 .news-item:last-child { border-bottom: none; }
 .news-source { font-size: 12px; color: var(--text-sub); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
@@ -537,7 +583,6 @@ main {
 .news-title:hover { text-decoration: underline; }
 .news-date { font-size: 12px; color: var(--text-sub); }
 
-/* Social Item Style */
 .social-item { 
     margin-bottom: 20px; padding: 16px; 
     border: 1px solid var(--border); border-radius: var(--radius-m);
@@ -549,7 +594,6 @@ main {
 .social-date { font-size: 12px; color: var(--text-sub); margin-left: auto; }
 .social-content { font-size: 14px; line-height: 1.5; color: var(--text-main); white-space: pre-wrap; }
 
-/* Misskey画像グリッド */
 .social-images {
     display: grid;
     gap: 8px;
@@ -582,7 +626,6 @@ main {
     margin-top: 4px;
 }
 
-
 .image-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 16px; padding-bottom: 24px;
@@ -601,7 +644,6 @@ main {
 }
 .img-card:hover .overlay { opacity: 1; }
 
-/* --- Footer --- */
 .app-footer {
     background: var(--footer-bg);
     padding: 16px 24px;
@@ -616,8 +658,6 @@ main {
 .footer-link { cursor: pointer; }
 .footer-link:hover { color: var(--text-main); }
 
-
-/* ===== Mobile Responsiveness & Full Screen Search ===== */
 @media (max-width: 820px) {
     .header-inner { flex-direction: column; padding: 16px 16px 0; gap: 12px; }
     .logo { margin: 0 auto; }
@@ -630,7 +670,6 @@ main {
     .video-thumb { width: 100%; aspect-ratio: 16/9; }
     .image-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
 
-    /* --- Mobile Full Screen Search --- */
     body.mobile-search-active { overflow: hidden; }
 
     body.mobile-search-active .logo,
@@ -689,7 +728,6 @@ main {
     }
 }
 
-/* --- Loader & Modal --- */
 .skeleton { background: #eee; border-radius: 4px; }
 @media (prefers-color-scheme: dark) { .skeleton { background: #3c4043; } }
 .sk-line { height: 14px; margin-bottom: 8px; }
@@ -710,6 +748,8 @@ main {
 </head>
 <body>
 
+<?php include 'cookie-consent.php'; ?>
+
 <div class="app-wrapper">
     <header>
         <div class="header-inner">
@@ -725,6 +765,27 @@ main {
                     <input type="text" id="searchInput" class="search-input" placeholder="検索" autocomplete="off">
                     
                     <div class="action-btn-area">
+                        <!-- セーフサーチボタン -->
+                        <div class="icon-btn safesearch-btn" id="safesearchBtn" title="セーフサーチ設定">
+                            <svg viewBox="0 0 24 24" width="24" height="24">
+                                <path fill="var(--icon-color)" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+                            </svg>
+                            <div class="safesearch-menu" id="safesearchMenu">
+                                <div class="safesearch-menu-item" data-value="0">
+                                    <span>オフ</span>
+                                    <svg class="check-icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                                </div>
+                                <div class="safesearch-menu-item" data-value="1">
+                                    <span>適度</span>
+                                    <svg class="check-icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                                </div>
+                                <div class="safesearch-menu-item" data-value="2">
+                                    <span>厳格</span>
+                                    <svg class="check-icon" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div id="micBtn" class="icon-btn mic-btn" title="音声検索">
                             <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                         </div>
@@ -768,7 +829,6 @@ main {
     </footer>
 </div>
 
-<!-- Modal -->
 <div id="modal" class="modal" onclick="if(event.target===this) modal.close()">
     <div class="close-btn" onclick="modal.close()">×</div>
     <div class="modal-content">
@@ -780,10 +840,28 @@ main {
 <script>
 const API_ENDPOINT = 'https://api.p2pear.asia/search';
 
+// Cookie管理
+const CookieManager = {
+    set(name, value, days = 365) {
+        const expires = new Date(Date.now() + days * 864e5).toUTCString();
+        document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+    },
+    get(name) {
+        return document.cookie.split('; ').reduce((r, v) => {
+            const parts = v.split('=');
+            return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+        }, '');
+    },
+    has(name) {
+        return this.get(name) !== '';
+    }
+};
+
 const app = {
     state: {
         q: '',
         type: 'web',
+        safesearch: 0,
         pages: { web: 1, image: 1, video: 1, news: 1, social: 1 },
         results: { web: [], image: [], video: [], news: [], social: [] },
         hasMore: { web: true, image: true, video: true, news: true, social: true },
@@ -810,10 +888,19 @@ const app = {
         stats: document.getElementById('stats'),
         loader: document.getElementById('loader'),
         main: document.getElementById('main'),
-        mobileBackBtn: document.getElementById('mobileBackBtn')
+        mobileBackBtn: document.getElementById('mobileBackBtn'),
+        safesearchBtn: document.getElementById('safesearchBtn'),
+        safesearchMenu: document.getElementById('safesearchMenu')
     },
 
     init() {
+        // Cookieから設定を読み込み
+        const savedSafesearch = CookieManager.get('safesearch');
+        if (savedSafesearch) {
+            this.state.safesearch = parseInt(savedSafesearch, 10);
+        }
+        this.updateSafesearchUI();
+
         const params = new URLSearchParams(window.location.search);
         this.state.q = params.get('q') || '';
         this.state.type = params.get('type') || 'web';
@@ -822,15 +909,62 @@ const app = {
         this.toggleClearBtn();
         this.updateTabUI();
         
-        if (this.state.q) this.fetchData(true);
+        // クエリがある場合は自動で検索実行
+        if (this.state.q) {
+            this.fetchData(true);
+        }
 
         this.setupEventListeners();
         this.setupVoiceInput();
+        this.setupSafesearch();
         
         this.observer = new IntersectionObserver((entries) => {
             if (entries[0].isIntersecting && !this.state.loading) this.loadMore();
         }, { rootMargin: '200px' });
         this.observer.observe(this.refs.loader);
+    },
+
+    setupSafesearch() {
+        // セーフサーチボタンのクリック
+        this.refs.safesearchBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.refs.safesearchMenu.classList.toggle('open');
+        });
+
+        // メニュー項目のクリック
+        document.querySelectorAll('.safesearch-menu-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const value = parseInt(e.currentTarget.dataset.value, 10);
+                this.setSafesearch(value);
+                this.refs.safesearchMenu.classList.remove('open');
+            });
+        });
+
+        // メニュー外クリックで閉じる
+        document.addEventListener('click', (e) => {
+            if (!this.refs.safesearchBtn.contains(e.target)) {
+                this.refs.safesearchMenu.classList.remove('open');
+            }
+        });
+    },
+
+    setSafesearch(value) {
+        this.state.safesearch = value;
+        CookieManager.set('safesearch', value);
+        this.updateSafesearchUI();
+        
+        // 検索結果がある場合は再検索
+        if (this.state.q) {
+            this.resetResults();
+            this.fetchData(true);
+        }
+    },
+
+    updateSafesearchUI() {
+        document.querySelectorAll('.safesearch-menu-item').forEach(item => {
+            const value = parseInt(item.dataset.value, 10);
+            item.classList.toggle('active', value === this.state.safesearch);
+        });
     },
 
     setupEventListeners() {
@@ -1121,9 +1255,11 @@ const app = {
         }
 
         try {
+            const safesearchParam = `&safesearch=${this.state.safesearch}`;
+            
             if (type === 'web' && isInitial && !this.state.panelData) {
-                const panelPromise = fetch(`${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=panel`);
-                const webPromise = fetch(`${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=${type}&pages=${page}`);
+                const panelPromise = fetch(`${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=panel${safesearchParam}`);
+                const webPromise = fetch(`${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=${type}&pages=${page}${safesearchParam}`);
                 
                 const [panelRes, webRes] = await Promise.all([panelPromise, webPromise]);
                 const panelData = await panelRes.json();
@@ -1135,7 +1271,7 @@ const app = {
                 this.state.results[type] = [...this.state.results[type], ...newItems];
                 this.state.totalCount = webData.count || this.state.results[type].length;
             } else {
-                const res = await fetch(`${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=${type}&pages=${page}`);
+                const res = await fetch(`${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=${type}&pages=${page}${safesearchParam}`);
                 const data = await res.json();
                 
                 const newItems = data.results || [];
@@ -1212,13 +1348,11 @@ const app = {
             const host = u.hostname.replace(/^www\./, '');
 
             const allowHosts = new Set([
-                // Video
                 'youtube.com','m.youtube.com','youtu.be',
                 'vimeo.com','player.vimeo.com',
                 'dailymotion.com','www.dailymotion.com','dai.ly',
                 'twitch.tv','www.twitch.tv',
                 'kick.com','www.kick.com',
-                // Music
                 'soundcloud.com','www.soundcloud.com',
                 'bandcamp.com',
                 'open.spotify.com',
@@ -1301,14 +1435,12 @@ const app = {
     },
 
     async openVideoEmbed(index, url) {
-        // すでに開いてるなら閉じる（トグル）
         if (this.state.oembed.open[index]) {
             this.stopAllEmbeds(null);
             this.renderResults();
             return;
         }
 
-        // 別の再生が続く問題: 先に他の埋め込みを停止
         this.stopAllEmbeds(index);
 
         const open = this.state.oembed.open;
@@ -1438,7 +1570,7 @@ const app = {
                         <span>${host}</span>
                         ${item.duration ? `• ${item.duration}` : ''}
                         ${item.publishedDate ? `• ${item.publishedDate}` : ''}
-                        ${canEmbed ? (isOpen ? '• 再生中（タップで停止）' : '• 埋め込み対応') : ''}
+                        ${canEmbed ? (isOpen ? '• 再生中(タップで停止)' : '• 埋め込み対応') : ''}
                     </div>
                     <div class="video-desc">${item.summary || ''}</div>
                     ${canEmbed && isOpen ? `<div id="video-embed-mount-${index}"></div>` : ''}
