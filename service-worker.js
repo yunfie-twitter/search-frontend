@@ -1,4 +1,6 @@
-const CACHE_NAME = 'wholphin-v1';
+const CACHE_NAME = 'wholphin-v2';
+const OFFLINE_PAGE = '/offline.html';
+
 const ASSETS_TO_CACHE = [
   '/',
   '/index.php',
@@ -7,7 +9,7 @@ const ASSETS_TO_CACHE = [
   '/favicon.ico',
   '/manifest.json',
   '/search.php',
-  // '/logo.png',
+  OFFLINE_PAGE,
   'https://fonts.googleapis.com/css2?family=Merriweather+Sans:ital,wght@1,300;1,700&family=Noto+Sans+JP:wght@400;500;700&display=optional'
 ];
 
@@ -42,10 +44,21 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // 1. 検索結果ページやAPI、外部画像はキャッシュせずネットワーク優先
-  // (search.php, api.p2pear.asia, etc.)
+  // 1. 検索結果ページやAPI、外部画像 - ネットワーク優先でオフライン時はフォールバック
   if (url.pathname.includes('search.php') || url.hostname !== self.location.hostname) {
-    return; // ブラウザのデフォルト挙動（ネットワークへ）
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        // source=pwa パラメータがある場合はオフライン画面へ
+        if (url.searchParams.get('source') === 'pwa') {
+          return caches.match(OFFLINE_PAGE);
+        }
+        return new Response('オフラインです', { 
+          status: 503,
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+        });
+      })
+    );
+    return;
   }
 
   // 2. 静的リソース (CSS, JS, Fonts, Top Page) -> Stale-While-Revalidate
@@ -62,7 +75,10 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch(() => {
-        // オフライン時のフォールバックがあればここで返す
+        // PWAモードでのオフライン時
+        if (url.searchParams.get('source') === 'pwa') {
+          return caches.match(OFFLINE_PAGE);
+        }
       });
 
       return cachedResponse || fetchPromise;

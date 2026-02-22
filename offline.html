@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>オフライン - wholphin</title>
+    <meta name="theme-color" content="#E5E5E5">
+    <meta name="theme-color" content="#E5E5E5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#171717" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --text-main: #202124;
+            --text-sub: #5f6368;
+            --bg-body: #ffffff;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #8ab4f8;
+                --text-main: #e8eaed;
+                --text-sub: #9aa0a6;
+                --bg-body: #202124;
+            }
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 16px;
+        }
+        
+        .offline-container {
+            padding: 32px;
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        .offline-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 24px;
+            opacity: 0.6;
+            color: var(--text-sub);
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 16px;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+        
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 32px;
+            color: var(--text-sub);
+        }
+        
+        .retry-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            padding: 14px 40px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .retry-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .retry-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .status-indicator {
+            margin-top: 24px;
+            font-size: 14px;
+            color: var(--text-sub);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ea4335;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        @media (max-width: 480px) {
+            .offline-icon {
+                width: 100px;
+                height: 100px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            p {
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4c-1.48 0-2.85.43-4.01 1.17l1.46 1.46C10.21 6.23 11.08 6 12 6c3.04 0 5.5 2.46 5.5 5.5v.5H19c1.66 0 3 1.34 3 3 0 1.13-.64 2.11-1.56 2.62l1.45 1.45C23.16 18.16 24 16.68 24 15c0-2.64-2.05-4.78-4.65-4.96zM3 5.27l2.75 2.74C2.56 8.15 0 10.77 0 14c0 3.31 2.69 6 6 6h11.73l2 2L21 20.73 4.27 4 3 5.27zM7.73 10l8 8H6c-2.21 0-4-1.79-4-4s1.79-4 4-4h1.73z"/>
+            </svg>
+        </div>
+        <h1>オフラインです</h1>
+        <p>インターネット接続を確認してください。<br>接続が復旧したら再試行できます。</p>
+        <button class="retry-btn" onclick="location.reload()">再試行</button>
+        
+        <div class="status-indicator">
+            <span class="status-dot"></span>
+            <span>オフライン</span>
+        </div>
+    </div>
+    
+    <script>
+        // オンライン復帰時に自動リロード
+        window.addEventListener('online', () => {
+            console.log('オンラインに復帰しました');
+            location.reload();
+        });
+        
+        // 定期的な接続チェック（オプション）
+        let checkInterval;
+        window.addEventListener('load', () => {
+            checkInterval = setInterval(() => {
+                if (navigator.onLine) {
+                    clearInterval(checkInterval);
+                    location.reload();
+                }
+            }, 5000); // 5秒ごとにチェック
+        });
+    </script>
+</body>
+</html>
