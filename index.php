@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
+<head prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb# website: http://ogp.me/ns/website#">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>wholphin - 高速でシンプルな検索体験</title>
@@ -18,12 +18,18 @@
     <meta name="twitter:url" content="https://wholphin.net/">
     <meta name="twitter:title" content="wholphin - 高速でシンプルな検索体験">
     <meta name="twitter:description" content="wholphin は高速でシンプルな検索体験を提供する日本語対応の検索サービスです。">
+    <meta name="twitter:site" content="@yunfie_misskey" />
+    <meta name="twitter:creator" content="@yunfie_misskey" />
 
     <link rel="canonical" href="https://wholphin.net/">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#E5E5E5">
     <meta name="theme-color" content="#E5E5E5" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#171717" media="(prefers-color-scheme: dark)" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Wholphin">
+    <meta name="application-name" content="Wholphin">
 
     <link rel="apple-touch-icon" href="/android-chrome-192x192.png">
     <link rel="shortcut icon" href="/favicon.ico">
