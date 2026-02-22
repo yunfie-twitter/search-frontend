@@ -36,6 +36,7 @@ $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 <link rel="preload" href="https://fonts.gstatic.com/s/merriweathersans/v28/2-c79IRs1JiJN1FRAMjTN5zd9vgsFHXwcjfj9zlcxZI.woff2" as="font" type="font/woff2" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Merriweather+Sans:ital,wght@0,300..800;1,300..800&family=Noto+Sans+JP:wght@100..900&display=optional" rel="stylesheet">
 <link rel="shortcut icon" href="/favicon.ico">
+<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
 <style>
 :root {
     --primary: #1a73e8;
@@ -75,6 +76,26 @@ $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
 html, body { height: 100%; margin: 0; }
+
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
 
 body {
     font-family: 'Noto Sans JP', sans-serif;
@@ -357,11 +378,26 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
     margin: 40px 0;
     padding: 20px 0;
     overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
 }
 
-.pagination::-webkit-scrollbar { display: none; }
+.pagination::-webkit-scrollbar {
+    height: 6px;
+}
+
+.pagination::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.pagination::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+.pagination::-webkit-scrollbar-thumb:hover {
+    background: var(--text-sub);
+}
 
 .pagination-btn {
     min-width: 40px;
@@ -428,7 +464,7 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
     .video-item { flex-direction: column; gap: 10px; }
     .video-thumb { width: 100%; aspect-ratio: 16/9; }
     .image-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-    .pagination { gap: 4px; padding: 16px 0; margin: 20px 0; justify-content: flex-start; }
+    .pagination { gap: 4px; padding: 16px 8px; margin: 20px 0; justify-content: flex-start; }
     .pagination-btn { min-width: 32px; height: 32px; font-size: 12px; padding: 0 8px; }
     .pagination-btn.nav { padding: 0 12px; font-size: 12px; }
     .pagination-logo { display: none; }
@@ -525,6 +561,24 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
 </div>
 
 <script>
+// Lenis Smooth Scroll初期化
+const lenis = new Lenis({
+    duration: 1.2,
+    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    direction: 'vertical',
+    gestureDirection: 'vertical',
+    smooth: true,
+    smoothTouch: false,
+    touchMultiplier: 2
+});
+
+function raf(time) {
+    lenis.raf(time);
+    requestAnimationFrame(raf);
+}
+
+requestAnimationFrame(raf);
+
 const API_ENDPOINT = 'https://api.p2pear.asia/search';
 
 const CookieManager = {
@@ -877,7 +931,7 @@ const app = {
         
         this.updateURL();
         this.fetchData();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        lenis.scrollTo(0, { duration: 0.8, easing: (t) => 1 - Math.pow(1 - t, 3) });
     },
 
     async fetchData() {
@@ -980,11 +1034,22 @@ const app = {
         // Previous
         html += `<button class="pagination-btn nav ${current === 1 ? 'disabled' : ''}" onclick="app.goToPage(${current - 1})" ${current === 1 ? 'disabled' : ''}>&lt; 前へ</button>`;
         
-        // 📱 スマホ: 現在ページ前後1ページのみ表示
+        // 📱 スマホ: 現在ページ前後2-3ページ表示(画面幅に応じて)
         // 🖥️ PC: 前後2ページ + ロゴ後にも表示
         if (isMobile) {
-            const startPage = Math.max(1, current - 1);
-            const endPage = Math.min(total, current + 1);
+            // スマホ: 画面幅に応じて3-6ページ表示
+            const screenWidth = window.innerWidth;
+            let pagesEachSide = 1; // デフォルト前後1ページ(合計3ページ)
+            
+            if (screenWidth >= 480) {
+                pagesEachSide = 2; // 480px以上なら前後2ページ(合計5ページ)
+            }
+            if (screenWidth >= 600) {
+                pagesEachSide = 2.5; // 600px以上なら前後2-3ページ(合計6ページ)
+            }
+            
+            const startPage = Math.max(1, current - Math.floor(pagesEachSide));
+            const endPage = Math.min(total, current + Math.ceil(pagesEachSide));
             
             for (let i = startPage; i <= endPage; i++) {
                 if (i === current) {
