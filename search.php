@@ -882,7 +882,7 @@ const app = {
 
         try {
             const safesearchParam = `&safesearch=${this.state.safesearch}&lang=ja`;
-            const url = `${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=${this.state.type}&pages=${this.state.page}${safesearchParam}`;
+            const url = `${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=${this.state.type}&page=${this.state.page}${safesearchParam}`;
             console.log(`[API Request] ${url}`);
             
             if (this.state.type === 'web' && this.state.page === 1 && !this.state.panelData) {
