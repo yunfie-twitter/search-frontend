@@ -823,8 +823,9 @@ const app = {
         if (this.state.loading) return;
         const type = this.state.type;
         const page = this.state.pages[type];
+        const prevCount = this.state.results[type].length;
 
-        console.log(`[fetchData] type=${type}, page=${page}`);
+        console.log(`[fetchData] type=${type}, page=${page}, prevCount=${prevCount}`);
 
         this.state.loading = true;
         this.toggleLoader(true);
@@ -843,51 +844,46 @@ const app = {
                 const panelData = await panelRes.json();
                 const webData = await webRes.json();
                 this.state.panelData = panelData;
-                const newItems = webData.results || [];
-                this.state.results[type] = [...this.state.results[type], ...newItems];
-                this.state.totalCount = webData.count || this.state.results[type].length;
                 
-                // 取得した結果の最大page番号をチェック
-                const maxPageInResults = Math.max(...newItems.map(r => r.page || 1));
-                console.log(`[fetchData] 取得結果の最大page=${maxPageInResults}`);
+                // APIは累積で返すので、新規データのみを追加
+                const allResults = webData.results || [];
+                const newResults = allResults.slice(prevCount);
+                this.state.results[type] = allResults;
+                this.state.totalCount = webData.count || allResults.length;
                 
-                if (maxPageInResults >= page) {
-                    // 次のページがある可能性がある
-                    this.state.pages[type] = maxPageInResults + 1;
+                console.log(`[fetchData] 全体=${allResults.length}, 新規=${newResults.length}`);
+                
+                if (newResults.length > 0) {
+                    const maxPage = Math.max(...allResults.map(r => r.page || 1));
+                    this.state.pages[type] = maxPage + 1;
                     this.state.hasMore[type] = true;
+                    console.log(`[fetchData] 次ページあり page=${this.state.pages[type]}`);
                 } else {
-                    // これ以上ページがない
                     this.state.hasMore[type] = false;
+                    console.log(`[fetchData] 次ページなし`);
                 }
             } else {
                 const url = `${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=${type}&pages=${page}${safesearchParam}`;
                 console.log(`[API Request] ${url}`);
                 const res = await fetch(url);
                 const data = await res.json();
-                console.log(`[API Response] results count=${data.results?.length || 0}`);
-                const newItems = data.results || [];
-                this.state.results[type] = [...this.state.results[type], ...newItems];
-                this.state.totalCount = data.count || this.state.results[type].length;
                 
-                // 取得した結果の最大page番号をチェック
-                if (newItems.length > 0) {
-                    const maxPageInResults = Math.max(...newItems.map(r => r.page || page));
-                    console.log(`[fetchData] 取得結果の最大page=${maxPageInResults}, リクエストpage=${page}`);
-                    
-                    if (maxPageInResults >= page) {
-                        // 次のページがある可能性がある
-                        this.state.pages[type] = maxPageInResults + 1;
-                        this.state.hasMore[type] = true;
-                        console.log(`[fetchData] 次ページあり、page=${this.state.pages[type]}に更新`);
-                    } else {
-                        // これ以上ページがない
-                        this.state.hasMore[type] = false;
-                        console.log(`[fetchData] 次ページなし`);
-                    }
+                // APIは累積で返すので、新規データのみを追加
+                const allResults = data.results || [];
+                const newResults = allResults.slice(prevCount);
+                this.state.results[type] = allResults;
+                this.state.totalCount = data.count || allResults.length;
+                
+                console.log(`[API Response] 全体=${allResults.length}, 新規=${newResults.length}`);
+                
+                if (newResults.length > 0) {
+                    const maxPage = Math.max(...allResults.map(r => r.page || 1));
+                    this.state.pages[type] = maxPage + 1;
+                    this.state.hasMore[type] = true;
+                    console.log(`[fetchData] 次ページあり page=${this.state.pages[type]}`);
                 } else {
-                    // 結果が0件 = これ以上ページがない
                     this.state.hasMore[type] = false;
-                    console.log(`[fetchData] 結果0件、次ページなし`);
+                    console.log(`[fetchData] 次ページなし`);
                 }
             }
 
