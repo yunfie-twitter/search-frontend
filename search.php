@@ -1,9 +1,10 @@
 <?php
-// search.php - セーフサーチ対応版 + Cookie保存 + 自動読み込み
+// search.php - Google風ページネーション版
 
 // クエリ取得
 $q = isset($_GET['q']) ? $_GET['q'] : '';
 $q = trim($q);
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 ?>
 <!DOCTYPE html>
 <html lang="ja">
@@ -36,7 +37,6 @@ $q = trim($q);
 <link href="https://fonts.googleapis.com/css2?family=Merriweather+Sans:ital,wght@0,300..800;1,300..800&family=Noto+Sans+JP:wght@100..900&display=optional" rel="stylesheet">
 <link rel="shortcut icon" href="/favicon.ico">
 <style>
-/* CSS省略 - 元のファイルと同じ */
 :root {
     --primary: #1a73e8;
     --primary-hover: #1557b0;
@@ -261,7 +261,6 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
 .content-area { margin-left: 105px; max-width: 650px; min-height: 40vh; }
 .stats { font-size: 14px; color: var(--text-sub); margin-bottom: 24px; height: 20px; }
 
-/* Knowledge Panel等のスタイルは元のファイルと同じため省略 */
 .knowledge-panel {
     border: 1px solid var(--border); border-radius: var(--radius-m);
     padding: 20px; margin-bottom: 32px; background: var(--bg-surface);
@@ -349,6 +348,63 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
 .img-card .overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 24px 12px 12px; color: #fff; opacity: 0; transition: opacity .2s; }
 .img-card:hover .overlay { opacity: 1; }
 
+/* Pagination */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 40px 0;
+    padding: 20px 0;
+}
+
+.pagination-btn {
+    min-width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--primary);
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.2s;
+    padding: 0 12px;
+}
+
+.pagination-btn:hover:not(.active):not(.disabled) {
+    background: var(--bg-hover);
+}
+
+.pagination-btn.active {
+    background: var(--primary);
+    color: white;
+    cursor: default;
+}
+
+.pagination-btn.disabled {
+    color: var(--text-sub);
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.pagination-btn.nav {
+    border-radius: var(--radius-m);
+    padding: 0 16px;
+}
+
+.pagination-logo {
+    margin: 0 16px;
+    user-select: none;
+}
+
+.pagination-logo svg {
+    height: 32px;
+    width: auto;
+}
+
 .app-footer { background: var(--footer-bg); padding: 16px 24px; border-top: 1px solid var(--border); font-size: 14px; color: var(--text-sub); transition: background 0.3s, border-color 0.3s; }
 .footer-inner { max-width: 1200px; margin-left: 105px; display: flex; gap: 24px; flex-wrap: wrap; }
 .footer-link { cursor: pointer; }
@@ -365,6 +421,9 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
     .video-item { flex-direction: column; gap: 10px; }
     .video-thumb { width: 100%; aspect-ratio: 16/9; }
     .image-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .pagination { gap: 4px; }
+    .pagination-btn { min-width: 36px; height: 36px; font-size: 13px; }
+    .pagination-logo { margin: 0 8px; }
     body.mobile-search-active { overflow: hidden; }
     body.mobile-search-active .logo, body.mobile-search-active .tabs, body.mobile-search-active main, body.mobile-search-active .app-footer { display: none; }
     body.mobile-search-active header { position: fixed; inset: 0; background: var(--bg-body); z-index: 9999; padding: 0; border: none; display: flex; flex-direction: column; }
@@ -381,36 +440,6 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
 @media (prefers-color-scheme: dark) { .skeleton { background: #3c4043; } }
 .sk-line { height: 14px; margin-bottom: 8px; }
 .sk-title { height: 22px; width: 60%; margin-bottom: 12px; }
-.loader-trigger { height: 80px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .3s; }
-.loader-trigger.visible { opacity: 1; }
-.spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.load-more-btn {
-    display: block;
-    margin: 32px auto;
-    padding: 12px 32px;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: var(--radius-m);
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.2s, transform 0.1s;
-    box-shadow: 0 2px 8px rgba(26,115,232,0.2);
-}
-.load-more-btn:hover {
-    background: var(--primary-hover);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(26,115,232,0.3);
-}
-.load-more-btn:active {
-    transform: translateY(0);
-}
-.load-more-btn.hidden {
-    display: none;
-}
 
 .modal { position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; }
 .modal.open { display: flex; }
@@ -463,8 +492,7 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
         <div class="content-area">
             <div id="stats" class="stats"></div>
             <div id="resultsContainer"></div>
-            <button id="loadMoreBtn" class="load-more-btn hidden" onclick="app.loadMore()">さらに表示</button>
-            <div id="loader" class="loader-trigger"><div class="spinner"></div></div>
+            <div id="pagination" class="pagination"></div>
         </div>
     </main>
 
@@ -490,7 +518,6 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
 
 <script>
 const API_ENDPOINT = 'https://api.p2pear.asia/search';
-const PAGES_PER_BATCH = 5; // Web検索は5ページごとに手動ロード
 
 const CookieManager = {
     set(name, value, days = 365) {
@@ -512,16 +539,15 @@ const app = {
     state: {
         q: '',
         type: 'web',
+        page: 1,
         safesearch: 0,
-        pages: { web: 1, image: 1, video: 1, news: 1, social: 1 },
-        results: { web: [], image: [], video: [], news: [], social: [] },
-        hasMore: { web: true, image: true, video: true, news: true, social: true },
-        loading: false,
+        results: [],
         totalCount: 0,
+        totalPages: 0,
+        loading: false,
         suggestIndex: -1,
         suggestions: [],
         isListening: false,
-        pendingFetch: null,
         panelData: null,
         oembed: { cache: {}, open: {} }
     },
@@ -534,8 +560,7 @@ const app = {
         suggestList: document.getElementById('suggestList'),
         container: document.getElementById('resultsContainer'),
         stats: document.getElementById('stats'),
-        loader: document.getElementById('loader'),
-        loadMoreBtn: document.getElementById('loadMoreBtn'),
+        pagination: document.getElementById('pagination'),
         main: document.getElementById('main'),
         mobileBackBtn: document.getElementById('mobileBackBtn'),
         safesearchBtn: document.getElementById('safesearchBtn'),
@@ -550,26 +575,17 @@ const app = {
         const params = new URLSearchParams(window.location.search);
         this.state.q = params.get('q') || '';
         this.state.type = params.get('type') || 'web';
+        this.state.page = Math.max(1, parseInt(params.get('page')) || 1);
         
         this.refs.input.value = this.state.q;
         this.toggleClearBtn();
         this.updateTabUI();
         
-        if (this.state.q) this.fetchData(true);
+        if (this.state.q) this.fetchData();
 
         this.setupEventListeners();
         this.setupVoiceInput();
         this.setupSafesearch();
-        
-        // Web検索以外は無限スクロール
-        this.observer = new IntersectionObserver((entries) => {
-            if (this.state.type === 'web') return; // Web検索は手動
-            if (entries[0].isIntersecting && !this.state.loading && this.state.hasMore[this.state.type]) {
-                console.log('[無限スクロール] トリガー検知');
-                this.loadMore();
-            }
-        }, { rootMargin: '200px' });
-        this.observer.observe(this.refs.loader);
     },
 
     setupSafesearch() {
@@ -596,8 +612,8 @@ const app = {
         CookieManager.set('safesearch', value);
         this.updateSafesearchUI();
         if (this.state.q) {
-            this.resetResults();
-            this.fetchData(true);
+            this.state.page = 1;
+            this.fetchData();
         }
     },
 
@@ -643,11 +659,11 @@ const app = {
             if (e.state) {
                 this.state.q = e.state.q;
                 this.state.type = e.state.type;
+                this.state.page = e.state.page;
                 this.refs.input.value = this.state.q;
                 this.toggleClearBtn();
-                this.resetResults();
                 this.updateTabUI();
-                this.fetchData(true);
+                this.fetchData();
             }
         };
     },
@@ -815,174 +831,147 @@ const app = {
     switchTab(type) {
         if (this.state.type === type) return;
         this.state.type = type;
+        this.state.page = 1;
         this.updateTabUI();
         this.updateURL();
-        this.renderResults();
-        this.updateLoadMoreButton();
-        if (this.state.results[type].length === 0 && this.state.q) {
-            if (this.state.loading) {
-                this.state.pendingFetch = { q: this.state.q, type: this.state.type, reset: true };
-            } else {
-                this.fetchData(true);
-            }
-        }
+        this.fetchData();
     },
 
     performSearch() {
         const val = this.refs.input.value.trim();
         if (!val) return;
         this.state.q = val;
-        this.resetResults();
-        this.updateURL();
-        this.fetchData(true);
-    },
-
-    resetResults() {
-        this.state.pages = { web: 1, image: 1, video: 1, news: 1, social: 1 };
-        this.state.results = { web: [], image: [], video: [], news: [], social: [] };
-        this.state.hasMore = { web: true, image: true, video: true, news: true, social: true };
+        this.state.page = 1;
+        this.state.results = [];
         this.state.panelData = null;
         this.state.oembed = { cache: {}, open: {} };
         this.refs.container.innerHTML = '';
         this.refs.stats.textContent = '';
-        this.refs.loadMoreBtn.classList.add('hidden');
+        this.refs.pagination.innerHTML = '';
+        this.updateURL();
+        this.fetchData();
     },
 
     updateURL() {
-        const url = `?q=${encodeURIComponent(this.state.q)}&type=${this.state.type}`;
-        history.pushState({ q: this.state.q, type: this.state.type }, '', url);
+        const url = `?q=${encodeURIComponent(this.state.q)}&type=${this.state.type}&page=${this.state.page}`;
+        history.pushState({ q: this.state.q, type: this.state.type, page: this.state.page }, '', url);
     },
 
-    async fetchData(isInitial = false) {
+    goToPage(page) {
+        if (page < 1 || page > this.state.totalPages || page === this.state.page) return;
+        this.state.page = page;
+        this.updateURL();
+        this.fetchData();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+
+    async fetchData() {
         if (this.state.loading) return;
-        const type = this.state.type;
-        const page = this.state.pages[type];
-        const prevCount = this.state.results[type].length;
-
-        console.log(`[fetchData] type=${type}, page=${page}, prevCount=${prevCount}`);
-
         this.state.loading = true;
-        this.toggleLoader(true);
-        this.refs.loadMoreBtn.classList.add('hidden');
-
-        if (isInitial && this.state.results[type].length === 0) {
-            this.renderSkeleton();
-        }
+        this.renderSkeleton();
 
         try {
             const safesearchParam = `&safesearch=${this.state.safesearch}&lang=ja`;
-            const url = `${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=${type}&pages=${page}${safesearchParam}`;
+            const url = `${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=${this.state.type}&pages=${this.state.page}${safesearchParam}`;
             console.log(`[API Request] ${url}`);
             
-            if (type === 'web' && isInitial && !this.state.panelData) {
+            if (this.state.type === 'web' && this.state.page === 1 && !this.state.panelData) {
                 const panelPromise = fetch(`${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=panel${safesearchParam}`);
                 const webPromise = fetch(url);
                 const [panelRes, webRes] = await Promise.all([panelPromise, webPromise]);
                 const panelData = await panelRes.json();
                 const webData = await webRes.json();
                 this.state.panelData = panelData;
-                
-                const allResults = webData.results || [];
-                const newResults = allResults.slice(prevCount);
-                this.state.results[type] = allResults;
-                this.state.totalCount = webData.count || allResults.length;
-                
-                console.log(`[API Response] 全体=${allResults.length}, 新規=${newResults.length}`);
-                
-                if (newResults.length > 0) {
-                    const maxPage = Math.max(...allResults.map(r => r.page || 1));
-                    this.state.pages[type] = maxPage + 1;
-                    this.state.hasMore[type] = true;
-                } else {
-                    this.state.hasMore[type] = false;
-                }
+                this.state.results = webData.results || [];
+                this.state.totalCount = webData.count || 0;
+                this.state.totalPages = Math.ceil(this.state.totalCount / 10) || 1;
             } else {
                 const res = await fetch(url);
                 const data = await res.json();
-                
-                const allResults = data.results || [];
-                const newResults = allResults.slice(prevCount);
-                this.state.results[type] = allResults;
-                this.state.totalCount = data.count || allResults.length;
-                
-                console.log(`[API Response] 全体=${allResults.length}, 新規=${newResults.length}`);
-                
-                if (newResults.length > 0) {
-                    const maxPage = Math.max(...allResults.map(r => r.page || 1));
-                    this.state.pages[type] = maxPage + 1;
-                    this.state.hasMore[type] = true;
-                } else {
-                    this.state.hasMore[type] = false;
-                }
+                this.state.results = data.results || [];
+                this.state.totalCount = data.count || 0;
+                this.state.totalPages = Math.ceil(this.state.totalCount / 10) || 1;
             }
 
+            console.log(`[fetchData] page=${this.state.page}, results=${this.state.results.length}, total=${this.state.totalCount}`);
             this.renderResults();
+            this.renderPagination();
         } catch (e) {
             console.error('[fetchData] エラー:', e);
             this.refs.stats.textContent = "読み込みエラーが発生しました";
-            this.state.hasMore[type] = false;
+            this.refs.container.innerHTML = '';
+            this.refs.pagination.innerHTML = '';
         } finally {
             this.state.loading = false;
-            this.updateLoadMoreButton();
-            this.toggleLoader(this.state.type !== 'web' && this.state.hasMore[type]);
-            this.flushPendingFetch();
         }
-    },
-
-    loadMore() {
-        const type = this.state.type;
-        console.log(`[loadMore] type=${type}, hasMore=${this.state.hasMore[type]}, loading=${this.state.loading}`);
-        
-        if (type === 'web') {
-            // Web検索は5ページ分まとめて取得
-            const currentPage = this.state.pages[type];
-            const targetPage = Math.min(currentPage + PAGES_PER_BATCH - 1, currentPage + PAGES_PER_BATCH);
-            console.log(`[loadMore Web] ${currentPage}ページから${targetPage}ページまで取得`);
-            this.state.pages[type] = targetPage;
-        }
-        
-        if (this.state.hasMore[type] && !this.state.loading) {
-            this.fetchData(false);
-        }
-    },
-
-    updateLoadMoreButton() {
-        const type = this.state.type;
-        if (type === 'web' && this.state.hasMore[type] && !this.state.loading) {
-            this.refs.loadMoreBtn.classList.remove('hidden');
-        } else {
-            this.refs.loadMoreBtn.classList.add('hidden');
-        }
-    },
-
-    flushPendingFetch() {
-        const p = this.state.pendingFetch;
-        if (!p) return;
-        if (p.q === this.state.q && p.type === this.state.type && !this.state.loading) {
-            this.state.pendingFetch = null;
-            setTimeout(() => this.fetchData(!!p.reset), 0);
-        }
-    },
-
-    toggleLoader(show) {
-        this.refs.loader.classList.toggle('visible', show);
     },
 
     renderSkeleton() {
         const type = this.state.type;
         let html = '';
         if (type === 'web' || type === 'news') {
-            for(let i=0; i<4; i++) html += `<div class="web-item"><div class="sk-title skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line skeleton" style="width:80%"></div></div>`;
+            for(let i=0; i<10; i++) html += `<div class="web-item"><div class="sk-title skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line skeleton" style="width:80%"></div></div>`;
         } else if (type === 'image') {
             html = '<div class="image-grid">';
-            for(let i=0; i<10; i++) html += '<div class="img-card skeleton"></div>';
+            for(let i=0; i<20; i++) html += '<div class="img-card skeleton"></div>';
             html += '</div>';
         } else if (type === 'video') {
-            for(let i=0; i<4; i++) html += `<div class="video-item"><div class="video-thumb skeleton"></div><div style="flex:1"><div class="sk-title skeleton"></div><div class="sk-line skeleton"></div></div></div>`;
+            for(let i=0; i<10; i++) html += `<div class="video-item"><div class="video-thumb skeleton"></div><div style="flex:1"><div class="sk-title skeleton"></div><div class="sk-line skeleton"></div></div></div>`;
         } else if (type === 'social') {
-            for(let i=0; i<4; i++) html += `<div class="social-item"><div class="social-header"><div class="social-avatar skeleton"></div><div class="sk-title skeleton" style="width:30%;height:16px;margin:0"></div></div><div class="sk-line skeleton"></div></div>`;
+            for(let i=0; i<10; i++) html += `<div class="social-item"><div class="social-header"><div class="social-avatar skeleton"></div><div class="sk-title skeleton" style="width:30%;height:16px;margin:0"></div></div><div class="sk-line skeleton"></div></div>`;
         }
         this.refs.container.innerHTML = html;
+    },
+
+    renderPagination() {
+        const current = this.state.page;
+        const total = this.state.totalPages;
+        
+        if (total <= 1) {
+            this.refs.pagination.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+        
+        // Previous
+        html += `<button class="pagination-btn nav ${current === 1 ? 'disabled' : ''}" onclick="app.goToPage(${current - 1})" ${current === 1 ? 'disabled' : ''}>&lt; 前へ</button>`;
+        
+        // Logo in the middle
+        const startPage = Math.max(1, Math.min(current - 2, total - 4));
+        const endPage = Math.min(total, startPage + 4);
+        
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === current) {
+                html += `<button class="pagination-btn active">${i}</button>`;
+            } else {
+                html += `<button class="pagination-btn" onclick="app.goToPage(${i})">${i}</button>`;
+            }
+        }
+        
+        // Wholphin logo
+        html += `<div class="pagination-logo">
+            <svg height="32" viewBox="0 0 120 32" fill="none">
+                <text x="0" y="24" font-family="Merriweather Sans, sans-serif" font-size="20" font-weight="700" font-style="italic" fill="var(--primary)">wholphin</text>
+            </svg>
+        </div>`;
+        
+        // More pages after logo
+        const startPage2 = endPage + 1;
+        const endPage2 = Math.min(total, startPage2 + 4);
+        
+        for (let i = startPage2; i <= endPage2; i++) {
+            if (i === current) {
+                html += `<button class="pagination-btn active">${i}</button>`;
+            } else {
+                html += `<button class="pagination-btn" onclick="app.goToPage(${i})">${i}</button>`;
+            }
+        }
+        
+        // Next
+        html += `<button class="pagination-btn nav ${current === total ? 'disabled' : ''}" onclick="app.goToPage(${current + 1})" ${current === total ? 'disabled' : ''}>次へ &gt;</button>`;
+        
+        this.refs.pagination.innerHTML = html;
     },
 
     isInvalid(str) {
@@ -1127,25 +1116,26 @@ const app = {
     },
 
     renderResults() {
-        const type = this.state.type;
-        const list = this.state.results[type];
+        const list = this.state.results;
         if (list.length > 0) {
-            this.refs.stats.textContent = `約 ${this.state.totalCount.toLocaleString()} 件`;
+            this.refs.stats.textContent = `約 ${this.state.totalCount.toLocaleString()} 件 (${this.state.page} / ${this.state.totalPages} ページ)`;
         } else if (!this.state.loading) {
             this.refs.stats.textContent = '見つかりませんでした';
         }
+        
+        const type = this.state.type;
         if (type === 'web') this.renderWebList(list);
         else if (type === 'image') this.renderImageGrid(list);
         else if (type === 'video') this.renderVideoList(list);
         else if (type === 'news') this.renderNewsList(list);
         else if (type === 'social') this.renderSocialList(list);
-        
-        this.updateLoadMoreButton();
     },
 
     renderWebList(list) {
         let html = '';
-        if (this.state.panelData) html += this.renderKnowledgePanel(this.state.panelData);
+        if (this.state.page === 1 && this.state.panelData) {
+            html += this.renderKnowledgePanel(this.state.panelData);
+        }
         html += list.map(item => {
             if (this.isInvalid(item.title) && this.isInvalid(item.summary)) return '';
             return `
@@ -1269,7 +1259,7 @@ const modal = {
     img: document.getElementById('modalImg'),
     title: document.getElementById('modalTitle'),
     open(index) {
-        const item = app.state.results.image[index];
+        const item = app.state.results[index];
         if(!item) return;
         this.img.src = item.thumbnail;
         this.title.textContent = item.title;
