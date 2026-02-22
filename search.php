@@ -356,7 +356,12 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
     gap: 8px;
     margin: 40px 0;
     padding: 20px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
+
+.pagination::-webkit-scrollbar { display: none; }
 
 .pagination-btn {
     min-width: 40px;
@@ -372,6 +377,7 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
     cursor: pointer;
     transition: background 0.2s;
     padding: 0 12px;
+    flex-shrink: 0;
 }
 
 .pagination-btn:hover:not(.active):not(.disabled) {
@@ -398,6 +404,7 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
 .pagination-logo {
     margin: 0 16px;
     user-select: none;
+    flex-shrink: 0;
 }
 
 .pagination-logo svg {
@@ -421,9 +428,10 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
     .video-item { flex-direction: column; gap: 10px; }
     .video-thumb { width: 100%; aspect-ratio: 16/9; }
     .image-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-    .pagination { gap: 4px; }
-    .pagination-btn { min-width: 36px; height: 36px; font-size: 13px; }
-    .pagination-logo { margin: 0 8px; }
+    .pagination { gap: 4px; padding: 16px 0; margin: 20px 0; justify-content: flex-start; }
+    .pagination-btn { min-width: 32px; height: 32px; font-size: 12px; padding: 0 8px; }
+    .pagination-btn.nav { padding: 0 12px; font-size: 12px; }
+    .pagination-logo { display: none; }
     body.mobile-search-active { overflow: hidden; }
     body.mobile-search-active .logo, body.mobile-search-active .tabs, body.mobile-search-active main, body.mobile-search-active .app-footer { display: none; }
     body.mobile-search-active header { position: fixed; inset: 0; background: var(--bg-body); z-index: 9999; padding: 0; border: none; display: flex; flex-direction: column; }
@@ -960,6 +968,7 @@ const app = {
     renderPagination() {
         const current = this.state.page;
         const total = this.state.totalPages;
+        const isMobile = window.innerWidth <= 820;
         
         if (total <= 1) {
             this.refs.pagination.innerHTML = '';
@@ -971,34 +980,48 @@ const app = {
         // Previous
         html += `<button class="pagination-btn nav ${current === 1 ? 'disabled' : ''}" onclick="app.goToPage(${current - 1})" ${current === 1 ? 'disabled' : ''}>&lt; 前へ</button>`;
         
-        // Logo in the middle
-        const startPage = Math.max(1, Math.min(current - 2, total - 4));
-        const endPage = Math.min(total, startPage + 4);
-        
-        for (let i = startPage; i <= endPage; i++) {
-            if (i === current) {
-                html += `<button class="pagination-btn active">${i}</button>`;
-            } else {
-                html += `<button class="pagination-btn" onclick="app.goToPage(${i})">${i}</button>`;
+        // 📱 スマホ: 現在ページ前後1ページのみ表示
+        // 🖥️ PC: 前後2ページ + ロゴ後にも表示
+        if (isMobile) {
+            const startPage = Math.max(1, current - 1);
+            const endPage = Math.min(total, current + 1);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === current) {
+                    html += `<button class="pagination-btn active">${i}</button>`;
+                } else {
+                    html += `<button class="pagination-btn" onclick="app.goToPage(${i})">${i}</button>`;
+                }
             }
-        }
-        
-        // Wholphin logo
-        html += `<div class="pagination-logo">
-            <svg height="32" viewBox="0 0 120 32" fill="none">
-                <text x="0" y="24" font-family="Merriweather Sans, sans-serif" font-size="20" font-weight="700" font-style="italic" fill="var(--primary)">wholphin</text>
-            </svg>
-        </div>`;
-        
-        // More pages after logo
-        const startPage2 = endPage + 1;
-        const endPage2 = Math.min(total, startPage2 + 4);
-        
-        for (let i = startPage2; i <= endPage2; i++) {
-            if (i === current) {
-                html += `<button class="pagination-btn active">${i}</button>`;
-            } else {
-                html += `<button class="pagination-btn" onclick="app.goToPage(${i})">${i}</button>`;
+        } else {
+            const startPage = Math.max(1, Math.min(current - 2, total - 4));
+            const endPage = Math.min(total, startPage + 4);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === current) {
+                    html += `<button class="pagination-btn active">${i}</button>`;
+                } else {
+                    html += `<button class="pagination-btn" onclick="app.goToPage(${i})">${i}</button>`;
+                }
+            }
+            
+            // Wholphin logo (PCのみ)
+            html += `<div class="pagination-logo">
+                <svg height="32" viewBox="0 0 120 32" fill="none">
+                    <text x="0" y="24" font-family="Merriweather Sans, sans-serif" font-size="20" font-weight="700" font-style="italic" fill="var(--primary)">wholphin</text>
+                </svg>
+            </div>`;
+            
+            // More pages after logo
+            const startPage2 = endPage + 1;
+            const endPage2 = Math.min(total, startPage2 + 4);
+            
+            for (let i = startPage2; i <= endPage2; i++) {
+                if (i === current) {
+                    html += `<button class="pagination-btn active">${i}</button>`;
+                } else {
+                    html += `<button class="pagination-btn" onclick="app.goToPage(${i})">${i}</button>`;
+                }
             }
         }
         
