@@ -130,43 +130,60 @@
 </div>
 
 <script>
+// Cookie同意管理（CookieManagerに依存しないバージョン）
 const cookieConsent = {
+    getCookie(name) {
+        return document.cookie.split('; ').reduce((r, v) => {
+            const parts = v.split('=');
+            return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+        }, '');
+    },
+    
+    setCookie(name, value, days = 365) {
+        const expires = new Date(Date.now() + days * 864e5).toUTCString();
+        document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+    },
+    
     init() {
         // Cookie同意がまだの場合はバナーを表示
-        if (!CookieManager.has('cookie_consent')) {
+        const consent = this.getCookie('cookie_consent');
+        if (!consent) {
             setTimeout(() => {
-                document.getElementById('cookieConsentBanner').classList.add('show');
+                const banner = document.getElementById('cookieConsentBanner');
+                if (banner) {
+                    banner.classList.add('show');
+                }
             }, 1000);
         }
     },
     
     accept() {
-        CookieManager.set('cookie_consent', 'accepted', 365);
+        this.setCookie('cookie_consent', 'accepted', 365);
         this.hide();
     },
     
     decline() {
-        CookieManager.set('cookie_consent', 'declined', 365);
+        this.setCookie('cookie_consent', 'declined', 365);
         // 拒否された場合は既存のCookieを削除
-        CookieManager.set('safesearch', '', -1);
+        this.setCookie('safesearch', '', -1);
         this.hide();
     },
     
     hide() {
         const banner = document.getElementById('cookieConsentBanner');
-        banner.classList.remove('show');
-        setTimeout(() => {
-            banner.style.display = 'none';
-        }, 300);
+        if (banner) {
+            banner.classList.remove('show');
+            setTimeout(() => {
+                banner.style.display = 'none';
+            }, 300);
+        }
     }
 };
 
 // ページ読み込み時に初期化
-if (typeof CookieManager !== 'undefined') {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => cookieConsent.init());
-    } else {
-        cookieConsent.init();
-    }
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => cookieConsent.init());
+} else {
+    cookieConsent.init();
 }
 </script>
