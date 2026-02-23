@@ -17,27 +17,32 @@
 <style>
 /* Advanced Search Specific Styles */
 .advanced-form {
-    max-width: 600px;
-    margin: 0 auto;
+    max-width: 100%;
+    margin: 0;
 }
 
-.form-group {
-    margin-bottom: 32px;
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
     opacity: 0;
     animation: slideUp 0.6s var(--ease-out) forwards;
 }
 
-.form-group:nth-child(1) { animation-delay: 0.1s; }
-.form-group:nth-child(2) { animation-delay: 0.2s; }
-.form-group:nth-child(3) { animation-delay: 0.3s; }
-.form-group:nth-child(4) { animation-delay: 0.4s; }
-.form-group:nth-child(5) { animation-delay: 0.5s; }
-.form-group:nth-child(6) { animation-delay: 0.6s; }
-.form-group:nth-child(7) { animation-delay: 0.7s; }
+.form-row:nth-child(1) { animation-delay: 0.1s; }
+.form-row:nth-child(2) { animation-delay: 0.2s; }
+.form-row:nth-child(3) { animation-delay: 0.3s; }
+.form-row:nth-child(4) { animation-delay: 0.4s; }
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
 
 .form-label {
     display: block;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text-main);
     margin-bottom: 8px;
@@ -45,12 +50,13 @@
 
 .form-hint {
     display: block;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-sub);
     margin-top: 4px;
+    line-height: 1.4;
 }
 
-.form-input {
+.form-input, .form-select {
     width: 100%;
     height: 48px;
     padding: 0 16px;
@@ -60,115 +66,126 @@
     color: var(--text-main);
     font-size: 15px;
     font-family: inherit;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
-.form-input:focus {
+.form-input:focus, .form-select:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+    background: var(--bg-surface);
+}
+
+.form-input:hover, .form-select:hover {
+    border-color: var(--icon-color);
 }
 
 .form-select {
-    width: 100%;
-    height: 48px;
-    padding: 0 16px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--bg-surface);
-    color: var(--text-main);
-    font-size: 15px;
-    font-family: inherit;
     cursor: pointer;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.form-select:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
 }
 
 .form-actions {
     display: flex;
     gap: 16px;
     margin-top: 48px;
+    opacity: 0;
+    animation: slideUp 0.6s var(--ease-out) 0.5s forwards;
 }
 
 .btn-primary {
     flex: 1;
-    height: 48px;
-    padding: 0 32px;
+    height: 56px;
+    padding: 0 40px;
     background: var(--primary);
     color: white;
     border: none;
-    border-radius: 12px;
-    font-size: 15px;
+    border-radius: 14px;
+    font-size: 16px;
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
-    transition: transform 0.2s, opacity 0.2s;
+    transition: transform 0.2s, opacity 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(26, 115, 232, 0.2);
 }
 
 .btn-primary:hover {
     opacity: 0.9;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
 }
 
 .btn-secondary {
-    height: 48px;
-    padding: 0 24px;
+    height: 56px;
+    padding: 0 32px;
     background: transparent;
     color: var(--text-main);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    font-size: 15px;
+    border-radius: 14px;
+    font-size: 16px;
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, border-color 0.2s;
 }
 
 .btn-secondary:hover {
     background: var(--bg-hover);
+    border-color: var(--icon-color);
 }
 
 .examples-section {
-    margin-top: 60px;
-    padding: 32px;
+    margin-top: 80px;
+    padding: 40px;
     background: var(--bg-cta);
     border-radius: 16px;
+    opacity: 0;
+    animation: slideUp 0.6s var(--ease-out) 0.6s forwards;
 }
 
 .examples-title {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
     color: var(--text-main);
+    letter-spacing: -0.02em;
 }
 
 .example-item {
     margin-bottom: 12px;
-    padding: 12px;
+    padding: 14px 16px;
     background: var(--bg-surface);
-    border-radius: 8px;
-    font-size: 13px;
+    border-radius: 10px;
+    font-size: 14px;
     color: var(--text-sub);
+    line-height: 1.6;
+    border: 1px solid var(--border-subtle);
 }
 
 .example-operator {
-    font-family: monospace;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
     color: var(--primary);
     font-weight: 600;
+    background: rgba(26, 115, 232, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
     .form-actions {
         flex-direction: column;
     }
     
     .btn-primary, .btn-secondary {
         width: 100%;
+    }
+    
+    .examples-section {
+        padding: 24px;
     }
 }
 </style>
@@ -206,62 +223,74 @@
     </div>
 
     <form class="advanced-form" id="advancedForm" method="get" action="search">
-        <div class="form-group">
-            <label class="form-label" for="allWords">すべてのキーワードを含む</label>
-            <input type="text" id="allWords" name="all" class="form-input" placeholder="例: 機械学習 Python">
-            <span class="form-hint">入力したすべての単語を含む結果を表示</span>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="allWords">すべてのキーワードを含む</label>
+                <input type="text" id="allWords" name="all" class="form-input" placeholder="例: 機械学習 Python">
+                <span class="form-hint">入力したすべての単語を含む結果を表示</span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="exactPhrase">完全一致フレーズ</label>
+                <input type="text" id="exactPhrase" name="exact" class="form-input" placeholder="例: 深層学習入門">
+                <span class="form-hint">このフレーズと完全に一致するページを検索</span>
+            </div>
         </div>
 
-        <div class="form-group">
-            <label class="form-label" for="exactPhrase">完全一致フレーズ</label>
-            <input type="text" id="exactPhrase" name="exact" class="form-input" placeholder="例: 深層学習入門">
-            <span class="form-hint">このフレーズと完全に一致するページを検索</span>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="anyWords">いずれかのキーワードを含む</label>
+                <input type="text" id="anyWords" name="any" class="form-input" placeholder="例: TensorFlow PyTorch Keras">
+                <span class="form-hint">入力した単語のいずれかを含む結果を表示</span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="excludeWords">除外するキーワード</label>
+                <input type="text" id="excludeWords" name="exclude" class="form-input" placeholder="例: 広告 有料">
+                <span class="form-hint">これらの単語を含むページを除外</span>
+            </div>
         </div>
 
-        <div class="form-group">
-            <label class="form-label" for="anyWords">いずれかのキーワードを含む</label>
-            <input type="text" id="anyWords" name="any" class="form-input" placeholder="例: TensorFlow PyTorch Keras">
-            <span class="form-hint">入力した単語のいずれかを含む結果を表示</span>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="site">サイトまたはドメイン</label>
+                <input type="text" id="site" name="site" class="form-input" placeholder="例: github.com">
+                <span class="form-hint">特定のウェブサイトやドメイン内を検索</span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="fileType">ファイルタイプ</label>
+                <select id="fileType" name="filetype" class="form-select">
+                    <option value="">すべてのファイル</option>
+                    <option value="pdf">PDF (.pdf)</option>
+                    <option value="doc">Word (.doc, .docx)</option>
+                    <option value="xls">Excel (.xls, .xlsx)</option>
+                    <option value="ppt">PowerPoint (.ppt, .pptx)</option>
+                    <option value="txt">テキスト (.txt)</option>
+                </select>
+                <span class="form-hint">特定のファイル形式に絞り込み</span>
+            </div>
         </div>
 
-        <div class="form-group">
-            <label class="form-label" for="excludeWords">除外するキーワード</label>
-            <input type="text" id="excludeWords" name="exclude" class="form-input" placeholder="例: 広告 有料">
-            <span class="form-hint">これらの単語を含むページを除外</span>
-        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="language">言語</label>
+                <select id="language" name="lang" class="form-select">
+                    <option value="">すべての言語</option>
+                    <option value="ja" selected>日本語</option>
+                    <option value="en">英語</option>
+                    <option value="zh">中国語</option>
+                    <option value="ko">韓国語</option>
+                    <option value="fr">フランス語</option>
+                    <option value="de">ドイツ語</option>
+                    <option value="es">スペイン語</option>
+                </select>
+                <span class="form-hint">表示言語を指定</span>
+            </div>
 
-        <div class="form-group">
-            <label class="form-label" for="site">サイトまたはドメイン</label>
-            <input type="text" id="site" name="site" class="form-input" placeholder="例: github.com">
-            <span class="form-hint">特定のウェブサイトやドメイン内を検索</span>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label" for="fileType">ファイルタイプ</label>
-            <select id="fileType" name="filetype" class="form-select">
-                <option value="">すべてのファイル</option>
-                <option value="pdf">PDF (.pdf)</option>
-                <option value="doc">Word (.doc, .docx)</option>
-                <option value="xls">Excel (.xls, .xlsx)</option>
-                <option value="ppt">PowerPoint (.ppt, .pptx)</option>
-                <option value="txt">テキスト (.txt)</option>
-            </select>
-            <span class="form-hint">特定のファイル形式に絞り込み</span>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label" for="language">言語</label>
-            <select id="language" name="lang" class="form-select">
-                <option value="">すべての言語</option>
-                <option value="ja" selected>日本語</option>
-                <option value="en">英語</option>
-                <option value="zh">中国語</option>
-                <option value="ko">韓国語</option>
-                <option value="fr">フランス語</option>
-                <option value="de">ドイツ語</option>
-                <option value="es">スペイン語</option>
-            </select>
-            <span class="form-hint">表示言語を指定</span>
+            <div class="form-group">
+                <!-- 空のグリッド項目(バランス調整用) -->
+            </div>
         </div>
 
         <div class="form-actions">
