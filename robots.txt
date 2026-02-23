@@ -1,0 +1,55 @@
+# robots.txt for wholphin.net
+# Updated: 2026-02-23
+
+# Allow all robots to access the site
+User-agent: *
+Allow: /
+
+# Disallow search results pages with parameters to prevent duplicate content
+Disallow: /search?*
+
+# Disallow error pages
+Disallow: /error
+Disallow: /offline
+
+# Allow access to CSS, JS, and image files for better rendering in search results
+Allow: /*.css$
+Allow: /*.js$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.gif$
+Allow: /*.svg$
+Allow: /*.ico$
+
+# Sitemap location
+Sitemap: https://wholphin.net/sitemap.xml
+
+# Crawl-delay for polite crawling (optional)
+# Crawl-delay: 1
+
+# Specific rules for common search engine bots
+User-agent: Googlebot
+Allow: /
+Disallow: /search?*
+
+User-agent: Bingbot
+Allow: /
+Disallow: /search?*
+
+User-agent: Slurp
+Allow: /
+Disallow: /search?*
+
+# Block AI training bots (optional - uncomment if desired)
+# User-agent: GPTBot
+# Disallow: /
+
+# User-agent: CCBot
+# Disallow: /
+
+# User-agent: anthropic-ai
+# Disallow: /
+
+# User-agent: Claude-Web
+# Disallow: /
