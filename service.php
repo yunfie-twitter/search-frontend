@@ -85,7 +85,7 @@
     <div class="service-grid">
         <article class="service-card">
             <div class="service-head">
-                <h3 class="service-title">wholphin 検索</h3>
+                <h3 class="service-title">wholphin</h3>
                 <span class="service-badge">Search</span>
             </div>
             <p class="service-desc">ノイズのない検索体験を提供する、wholphin の検索サービスです。</p>
