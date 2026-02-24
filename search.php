@@ -37,6 +37,11 @@ $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 <link href="https://fonts.googleapis.com/css2?family=Merriweather+Sans:ital,wght@0,300..800;1,300..800&family=Noto+Sans+JP:wght@100..900&display=optional" rel="stylesheet">
 <link rel="shortcut icon" href="/favicon.ico">
 <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+
+<!-- JS無効時はnoscript版へ -->
+<noscript>
+  <meta http-equiv="refresh" content="0;url=/noscript/search.php?<?= htmlspecialchars(http_build_query($_GET), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">
+</noscript>
 <style>
 :root {
     --primary: #1a73e8;
