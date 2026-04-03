@@ -546,7 +546,7 @@ main { width: 100%; max-width: 1200px; padding: 24px; }
 </div>
 
 <script>
-// Lenis Smooth Scroll初期化 - パフォーマンス向上版
+// Lenis Smooth Scroll初期化
 const lenis = new Lenis({
     duration: 0.8,
     easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -561,7 +561,6 @@ function raf(time) {
     lenis.raf(time);
     requestAnimationFrame(raf);
 }
-
 requestAnimationFrame(raf);
 
 const API_ENDPOINT = 'https://api.p2pear.asia/search';
@@ -614,6 +613,8 @@ const app = {
         safesearchMenu: document.getElementById('safesearchMenu')
     },
 
+    suggestController: null,
+
     init() {
         const savedSafesearch = CookieManager.get('safesearch');
         if (savedSafesearch) this.state.safesearch = parseInt(savedSafesearch, 10);
@@ -623,11 +624,11 @@ const app = {
         this.state.q = params.get('q') || '';
         this.state.type = params.get('type') || 'web';
         this.state.page = Math.max(1, parseInt(params.get('page')) || 1);
-        
+
         this.refs.input.value = this.state.q;
         this.toggleClearBtn();
         this.updateTabUI();
-        
+
         if (this.state.q) this.fetchData();
 
         this.setupEventListeners();
@@ -680,13 +681,14 @@ const app = {
             if (window.innerWidth <= 820) document.body.classList.add('mobile-search-active');
             this.refs.boxWrap.classList.add('active');
             if (this.refs.input.value.trim().length > 0) {
-                 if (this.state.suggestions.length > 0) this.renderSuggestions(this.state.suggestions);
-                 else this.fetchSuggestions(this.refs.input.value.trim());
+                if (this.state.suggestions.length > 0) this.renderSuggestions(this.state.suggestions);
+                else this.fetchSuggestions(this.refs.input.value.trim());
             }
         });
         this.refs.input.addEventListener('keydown', (e) => this.handleKeydown(e));
         this.refs.clearBtn.addEventListener('click', () => {
             this.refs.input.value = '';
+            this.state.suggestions = [];
             this.refs.input.focus();
             this.toggleClearBtn();
             this.closeSuggest();
@@ -736,12 +738,12 @@ const app = {
         recognition.onstart = () => {
             this.state.isListening = true;
             this.refs.micBtn.classList.add('listening');
-            this.refs.input.placeholder = "お話しください...";
+            this.refs.input.placeholder = 'お話しください...';
         };
         recognition.onend = () => {
             this.state.isListening = false;
             this.refs.micBtn.classList.remove('listening');
-            this.refs.input.placeholder = "検索";
+            this.refs.input.placeholder = '検索';
         };
         recognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript;
@@ -755,8 +757,8 @@ const app = {
             console.error('Voice Error:', e.error);
             this.state.isListening = false;
             this.refs.micBtn.classList.remove('listening');
-            this.refs.input.placeholder = "エラーが発生しました";
-            setTimeout(() => { this.refs.input.placeholder = "検索"; }, 2000);
+            this.refs.input.placeholder = 'エラーが発生しました';
+            setTimeout(() => { this.refs.input.placeholder = '検索'; }, 2000);
         };
         this.refs.micBtn.addEventListener('click', () => {
             if (this.state.isListening) recognition.stop();
@@ -780,8 +782,15 @@ const app = {
     },
 
     async fetchSuggestions(query) {
+        // 前のリクエストをキャンセル（レースコンディション防止）
+        if (this.suggestController) this.suggestController.abort();
+        this.suggestController = new AbortController();
+
         try {
-            const res = await fetch(`${API_ENDPOINT}?q=${encodeURIComponent(query)}&type=suggest`);
+            const res = await fetch(
+                `${API_ENDPOINT}?q=${encodeURIComponent(query)}&type=suggest`,
+                { signal: this.suggestController.signal }
+            );
             const data = await res.json();
             let list = [];
             if (Array.isArray(data.results)) list = data.results;
@@ -789,7 +798,10 @@ const app = {
             else if (data.suggestions) list = data.suggestions;
             this.state.suggestions = list;
             this.renderSuggestions(list);
-        } catch (e) { console.error('Suggest error', e); }
+        } catch (e) {
+            if (e.name === 'AbortError') return;
+            console.error('Suggest error', e);
+        }
     },
 
     getSuggestText(item) {
@@ -803,18 +815,29 @@ const app = {
             this.closeSuggest();
             return;
         }
-        const html = list.map((item, idx) => {
+
+        this.refs.suggestList.innerHTML = '';
+        let hasItems = false;
+
+        list.forEach((item, idx) => {
             const text = this.getSuggestText(item);
-            if (!text) return '';
-            return `
-                <div class="suggest-item" data-idx="${idx}" onclick="app.selectSuggest(${idx})">
-                    <svg class="suggest-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                    <span class="suggest-text">${text}</span>
-                </div>
-            `;
-        }).join('');
-        if (html) {
-            this.refs.suggestList.innerHTML = html;
+            if (!text) return;
+            hasItems = true;
+
+            const el = document.createElement('div');
+            el.className = 'suggest-item';
+            el.dataset.idx = idx;
+            el.innerHTML = `<svg class="suggest-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>`;
+            const span = document.createElement('span');
+            span.className = 'suggest-text';
+            span.textContent = text;
+            el.appendChild(span);
+
+            el.addEventListener('click', () => app.selectSuggest(Number(el.dataset.idx)));
+            this.refs.suggestList.appendChild(el);
+        });
+
+        if (hasItems) {
             this.refs.boxWrap.classList.add('has-suggestions');
         } else {
             this.closeSuggest();
@@ -864,7 +887,7 @@ const app = {
         if (this.state.suggestIndex >= 0) {
             const item = items[this.state.suggestIndex];
             item.classList.add('selected');
-            const idx = parseInt(item.dataset.idx);
+            const idx = Number(item.dataset.idx);
             this.refs.input.value = this.getSuggestText(this.state.suggestions[idx]);
         }
     },
@@ -913,29 +936,28 @@ const app = {
     goToPage(page) {
         if (page < 1 || page > this.state.totalPages || page === this.state.page) return;
         this.state.page = page;
-        
         this.state.results = [];
         this.refs.container.innerHTML = '';
         this.refs.stats.textContent = '';
         this.refs.pagination.innerHTML = '';
-        
         this.updateURL();
-        this.fetchData();
-        lenis.scrollTo(0, { duration: 0.6, easing: (t) => 1 - Math.pow(1 - t, 3) });
+        // fetchData 完了後にスクロール（スケルトン表示中のスクロールを防止）
+        this.fetchData().then(() => {
+            lenis.scrollTo(0, { duration: 0.6, easing: (t) => 1 - Math.pow(1 - t, 3) });
+        });
     },
 
     async fetchData() {
         if (this.state.loading) return;
         this.state.loading = true;
-        
+
         this.state.results = [];
         this.renderSkeleton();
 
         try {
             const safesearchParam = `&safesearch=${this.state.safesearch}&lang=ja`;
             const url = `${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=${this.state.type}&page=${this.state.page}${safesearchParam}`;
-            console.log(`[API Request] ${url}`);
-            
+
             if (this.state.type === 'web' && this.state.page === 1 && !this.state.panelData) {
                 const panelPromise = fetch(`${API_ENDPOINT}?q=${encodeURIComponent(this.state.q)}&type=panel${safesearchParam}`);
                 const webPromise = fetch(url);
@@ -954,12 +976,11 @@ const app = {
                 this.calculateTotalPages();
             }
 
-            console.log(`[API Response] count=${this.state.totalCount}, results.length=${this.state.results.length}, calculatedPages=${this.state.totalPages}`);
             this.renderResults();
             this.renderPagination();
         } catch (e) {
             console.error('[fetchData] エラー:', e);
-            this.refs.stats.textContent = "読み込みエラーが発生しました";
+            this.refs.stats.textContent = '読み込みエラーが発生しました';
             this.refs.container.innerHTML = '';
             this.refs.pagination.innerHTML = '';
         } finally {
@@ -970,35 +991,31 @@ const app = {
     calculateTotalPages() {
         const count = this.state.totalCount;
         const resultsLen = this.state.results.length;
-        
+
         if (count > 0 && resultsLen > 0) {
             if (count <= resultsLen * 2) {
-                console.log(`[calculateTotalPages] count <= resultsLen*2 (${count} <= ${resultsLen * 2}) → countはページ数と判定`);
                 this.state.totalPages = count;
             } else {
-                console.log(`[calculateTotalPages] count > resultsLen*2 (${count} > ${resultsLen * 2}) → countは総件数と判定`);
                 this.state.totalPages = Math.ceil(count / 10);
             }
         } else {
             this.state.totalPages = 1;
         }
-        
-        console.log(`[calculateTotalPages] Final: totalPages=${this.state.totalPages}`);
     },
 
     renderSkeleton() {
         const type = this.state.type;
         let html = '';
         if (type === 'web' || type === 'news') {
-            for(let i=0; i<10; i++) html += `<div class="web-item"><div class="sk-title skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line skeleton" style="width:80%"></div></div>`;
+            for (let i = 0; i < 10; i++) html += `<div class="web-item"><div class="sk-title skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line skeleton" style="width:80%"></div></div>`;
         } else if (type === 'image') {
             html = '<div class="image-grid">';
-            for(let i=0; i<20; i++) html += '<div class="img-card skeleton"></div>';
+            for (let i = 0; i < 20; i++) html += '<div class="img-card skeleton"></div>';
             html += '</div>';
         } else if (type === 'video') {
-            for(let i=0; i<10; i++) html += `<div class="video-item"><div class="video-thumb skeleton"></div><div style="flex:1"><div class="sk-title skeleton"></div><div class="sk-line skeleton"></div></div></div>`;
+            for (let i = 0; i < 10; i++) html += `<div class="video-item"><div class="video-thumb skeleton"></div><div style="flex:1"><div class="sk-title skeleton"></div><div class="sk-line skeleton"></div></div></div>`;
         } else if (type === 'social') {
-            for(let i=0; i<10; i++) html += `<div class="social-item"><div class="social-header"><div class="social-avatar skeleton"></div><div class="sk-title skeleton" style="width:30%;height:16px;margin:0"></div></div><div class="sk-line skeleton"></div></div>`;
+            for (let i = 0; i < 10; i++) html += `<div class="social-item"><div class="social-header"><div class="social-avatar skeleton"></div><div class="sk-title skeleton" style="width:30%;height:16px;margin:0"></div></div><div class="sk-line skeleton"></div></div>`;
         }
         this.refs.container.innerHTML = html;
     },
@@ -1007,69 +1024,52 @@ const app = {
         const current = this.state.page;
         const total = this.state.totalPages;
         const isMobile = window.innerWidth <= 820;
-        
+
         if (total <= 1) {
             this.refs.pagination.innerHTML = '';
             return;
         }
 
         let html = '';
-        
         html += `<button class="pagination-btn nav ${current === 1 ? 'disabled' : ''}" onclick="app.goToPage(${current - 1})" ${current === 1 ? 'disabled' : ''}>&lt; 前へ</button>`;
-        
+
         if (isMobile) {
             const screenWidth = window.innerWidth;
             let pagesEachSide = 1;
-            
-            if (screenWidth >= 480) {
-                pagesEachSide = 2;
-            }
-            if (screenWidth >= 600) {
-                pagesEachSide = 2.5;
-            }
-            
+            if (screenWidth >= 480) pagesEachSide = 2;
+            if (screenWidth >= 600) pagesEachSide = 2.5;
+
             const startPage = Math.max(1, current - Math.floor(pagesEachSide));
             const endPage = Math.min(total, current + Math.ceil(pagesEachSide));
-            
+
             for (let i = startPage; i <= endPage; i++) {
-                if (i === current) {
-                    html += `<button class="pagination-btn active">${i}</button>`;
-                } else {
-                    html += `<button class="pagination-btn" onclick="app.goToPage(${i})">${i}</button>`;
-                }
+                html += i === current
+                    ? `<button class="pagination-btn active">${i}</button>`
+                    : `<button class="pagination-btn" onclick="app.goToPage(${i})">${i}</button>`;
             }
         } else {
             const startPage = Math.max(1, Math.min(current - 2, total - 4));
             const endPage = Math.min(total, startPage + 4);
-            
+
             for (let i = startPage; i <= endPage; i++) {
-                if (i === current) {
-                    html += `<button class="pagination-btn active">${i}</button>`;
-                } else {
-                    html += `<button class="pagination-btn" onclick="app.goToPage(${i})">${i}</button>`;
-                }
+                html += i === current
+                    ? `<button class="pagination-btn active">${i}</button>`
+                    : `<button class="pagination-btn" onclick="app.goToPage(${i})">${i}</button>`;
             }
-            
-            html += `<div class="pagination-logo">
-                <svg height="32" viewBox="0 0 120 32" fill="none">
-                    <text x="0" y="24" font-family="Merriweather Sans, sans-serif" font-size="20" font-weight="700" font-style="italic" fill="var(--primary)">wholphin</text>
-                </svg>
-            </div>`;
-            
+
+            html += `<div class="pagination-logo"><svg height="32" viewBox="0 0 120 32" fill="none"><text x="0" y="24" font-family="Merriweather Sans, sans-serif" font-size="20" font-weight="700" font-style="italic" fill="var(--primary)">wholphin</text></svg></div>`;
+
             const startPage2 = endPage + 1;
             const endPage2 = Math.min(total, startPage2 + 4);
-            
+
             for (let i = startPage2; i <= endPage2; i++) {
-                if (i === current) {
-                    html += `<button class="pagination-btn active">${i}</button>`;
-                } else {
-                    html += `<button class="pagination-btn" onclick="app.goToPage(${i})">${i}</button>`;
-                }
+                html += i === current
+                    ? `<button class="pagination-btn active">${i}</button>`
+                    : `<button class="pagination-btn" onclick="app.goToPage(${i})">${i}</button>`;
             }
         }
-        
+
         html += `<button class="pagination-btn nav ${current === total ? 'disabled' : ''}" onclick="app.goToPage(${current + 1})" ${current === total ? 'disabled' : ''}>次へ &gt;</button>`;
-        
         this.refs.pagination.innerHTML = html;
     },
 
@@ -1077,6 +1077,10 @@ const app = {
         if (!str) return true;
         const s = String(str).trim();
         return s === 'null' || s === 'undefined' || s === '';
+    },
+
+    safeHostname(url) {
+        try { return new URL(url).hostname; } catch (e) { return url; }
     },
 
     isEmbeddable(url) {
@@ -1221,7 +1225,7 @@ const app = {
         } else if (!this.state.loading) {
             this.refs.stats.textContent = '見つかりませんでした';
         }
-        
+
         const type = this.state.type;
         if (type === 'web') this.renderWebList(list);
         else if (type === 'image') this.renderImageGrid(list);
@@ -1237,11 +1241,12 @@ const app = {
         }
         html += list.map(item => {
             if (this.isInvalid(item.title) && this.isInvalid(item.summary)) return '';
+            const hostname = this.safeHostname(item.url);
             return `
             <div class="web-item">
                 <div class="web-cite">
                     ${item.favicon ? `<img src="${item.favicon}" onerror="this.style.display='none'">` : ''}
-                    <span>${new URL(item.url).hostname}</span>
+                    <span>${hostname}</span>
                 </div>
                 <a href="${item.url}" target="_blank" class="web-title">${item.title || 'No Title'}</a>
                 <div class="web-desc">${item.summary || ''}</div>
@@ -1256,11 +1261,11 @@ const app = {
             if (this.isInvalid(item.title)) return '';
             const canEmbed = this.isEmbeddable(item.url);
             const isOpen = !!this.state.oembed.open[index];
-            const host = new URL(item.url).hostname;
+            const host = this.safeHostname(item.url);
             const faviconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`;
             return `
             <div class="video-item ${isOpen ? 'is-active' : ''}" onclick="window.open('${item.url}')">
-                <div class="video-thumb" onclick="event.stopPropagation(); ${canEmbed ? `app.openVideoEmbed(${index}, '${item.url.replace(/'/g, "\\'")}')` : `window.open('${item.url}')`} ">
+                <div class="video-thumb" onclick="event.stopPropagation(); ${canEmbed ? `app.openVideoEmbed(${index}, '${item.url.replace(/'/g, "\\'")}')` : `window.open('${item.url}')`}">
                     <img src="${item.thumbnail || ''}" onerror="this.src='//placehold.co/320x180/eee/999?text=No+Thumb'">
                     <div class="video-play-btn" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
                 </div>
@@ -1283,11 +1288,12 @@ const app = {
 
     renderNewsList(list) {
         this.refs.container.innerHTML = list.map(item => {
-             return `
+            const hostname = this.safeHostname(item.url);
+            return `
             <div class="news-item">
                 <div class="news-source">
                     ${item.favicon ? `<img src="${item.favicon}" style="width:16px;height:16px;">` : ''}
-                    <span>${new URL(item.url).hostname}</span>
+                    <span>${hostname}</span>
                 </div>
                 <a href="${item.url}" target="_blank" class="news-title">${item.title || 'No Title'}</a>
                 <div class="web-desc">${item.summary || ''}</div>
@@ -1298,10 +1304,11 @@ const app = {
     },
 
     renderSocialList(list) {
+        const escapeHtml = (s) => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
         const formatText = (text) => {
             if (!text) return '';
-            let t = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-            t = t.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="color:#1a0dab;text-decoration:none;">$1</a>');
+            let t = escapeHtml(text);
+            t = t.replace(/(https?:\/\/[^\s]+)/g, (url) => `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="color:#1a0dab;text-decoration:none;">${escapeHtml(url)}</a>`);
             t = t.replace(/\n/g, '<br>');
             return t;
         };
@@ -1314,21 +1321,22 @@ const app = {
                 imagesHtml = `
                 <div class="social-images ${gridClass}">
                     ${displayImages.map(img => `
-                        <div class="social-img-wrap" onclick="event.stopPropagation(); modal.openImage('${img.url}')">
-                            <img src="${img.thumbnailUrl}" alt="" loading="lazy" onerror="this.style.display='none'">
+                        <div class="social-img-wrap" onclick="event.stopPropagation(); modal.openImage('${escapeHtml(img.url)}')"　>
+                            <img src="${escapeHtml(img.thumbnailUrl)}" alt="" loading="lazy" onerror="this.style.display='none'">
                         </div>
                     `).join('')}
                 </div>
                 ${imgCount > 4 ? `<div class="social-img-more">+${imgCount - 4}枚の画像</div>` : ''}
                 `;
             }
+            const hostname = this.safeHostname(item.url);
             const contentHtml = formatText(item.summary || item.content || item.title);
             return `
-            <div class="social-item" style="cursor:pointer" onclick="window.open('${item.url}')">
+            <div class="social-item" style="cursor:pointer" onclick="window.open('${escapeHtml(item.url)}')">
                 <div class="social-header">
-                    ${item.favicon ? `<img src="${item.favicon}" class="social-avatar" onerror="this.style.display='none'">` : '<div class="social-avatar"></div>'}
-                    <span class="social-author">${item.author || new URL(item.url).hostname}</span>
-                    <span class="social-date">${item.publishedDate || ''}</span>
+                    ${item.favicon ? `<img src="${escapeHtml(item.favicon)}" class="social-avatar" onerror="this.style.display='none'">` : '<div class="social-avatar"></div>'}
+                    <span class="social-author">${escapeHtml(item.author || hostname)}</span>
+                    <span class="social-date">${escapeHtml(item.publishedDate || '')}</span>
                 </div>
                 <div class="social-content">${contentHtml}</div>
                 ${imagesHtml}
@@ -1359,7 +1367,7 @@ const modal = {
     title: document.getElementById('modalTitle'),
     open(index) {
         const item = app.state.results[index];
-        if(!item) return;
+        if (!item) return;
         this.img.src = item.thumbnail;
         this.title.textContent = item.title;
         this.el.classList.add('open');

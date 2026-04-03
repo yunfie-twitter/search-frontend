@@ -13,6 +13,7 @@ const app = {
     delayTimer: null,
     activeIndex: -1,
     suggestions: [],
+    fetchController: null,
 
     init() {
         this.setupEvents();
@@ -30,11 +31,10 @@ const app = {
             this.delayTimer = setTimeout(() => this.fetchSuggestions(val), 150);
         });
 
-        // フォーカス時
         input.addEventListener('focus', () => {
             boxWrap.classList.add('active');
-            
-            if (window.matchMedia("(max-width: 600px)").matches) {
+
+            if (window.matchMedia('(max-width: 600px)').matches) {
                 document.body.classList.add('mobile-search-active');
             }
 
@@ -68,6 +68,7 @@ const app = {
 
         if (clearBtn) clearBtn.addEventListener('click', () => {
             input.value = '';
+            this.suggestions = [];
             this.toggleClearBtn();
             input.focus();
             this.renderSuggestions([]);
@@ -95,7 +96,7 @@ const app = {
     },
 
     performSearch(query) {
-        if(!query) return;
+        if (!query) return;
         location.href = `search?q=${encodeURIComponent(query)}`;
     },
 
@@ -106,7 +107,7 @@ const app = {
     setupVoiceInput() {
         const { micBtn, input } = this.refs;
         if (!micBtn) return;
-        
+
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) { micBtn.style.display = 'none'; return; }
 
@@ -114,8 +115,8 @@ const app = {
         recognition.lang = 'ja-JP';
         recognition.interimResults = false;
 
-        recognition.onstart = () => { micBtn.style.color = '#1a73e8'; input.placeholder = "お話しください..."; };
-        recognition.onend = () => { micBtn.style.color = ''; input.placeholder = "検索または URL を入力"; };
+        recognition.onstart = () => { micBtn.style.color = '#1a73e8'; input.placeholder = 'お話しください...'; };
+        recognition.onend = () => { micBtn.style.color = ''; input.placeholder = '検索または URL を入力'; };
         recognition.onresult = (e) => {
             const t = e.results[0][0].transcript;
             if (t) {
@@ -127,29 +128,37 @@ const app = {
         };
 
         micBtn.addEventListener('click', () => {
-            try { recognition.start(); } catch(e) { recognition.stop(); }
+            try { recognition.start(); } catch (e) { recognition.stop(); }
         });
     },
 
     async fetchSuggestions(q) {
-        if (!q) { 
-            this.suggestions = []; 
-            this.renderSuggestions([]); 
-            return; 
+        if (!q) {
+            this.suggestions = [];
+            this.renderSuggestions([]);
+            return;
         }
 
+        // 前のリクエストをキャンセル（レースコンディション防止）
+        if (this.fetchController) this.fetchController.abort();
+        this.fetchController = new AbortController();
+
         try {
-            const res = await fetch(`${API_ENDPOINT}?q=${encodeURIComponent(q)}&type=suggest`);
+            const res = await fetch(
+                `${API_ENDPOINT}?q=${encodeURIComponent(q)}&type=suggest`,
+                { signal: this.fetchController.signal }
+            );
             const data = await res.json();
             let list = data.suggestions || data.results || [];
-            
+
             this.suggestions = list.slice(0, 10).map(item => ({
-                text: typeof item === 'string' ? item : (item.term || item.title || item.value || JSON.stringify(item))
-            }));
+                text: typeof item === 'string' ? item : (item.term || item.title || item.value || '')
+            })).filter(item => item.text);
 
             this.activeIndex = -1;
             this.renderSuggestions(this.suggestions, q);
         } catch (err) {
+            if (err.name === 'AbortError') return;
             console.error(err);
             this.suggestions = [];
             this.renderSuggestions([]);
@@ -169,45 +178,50 @@ const app = {
         boxWrap.classList.add('has-suggestions');
 
         const escapeReg = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const searchIconSvg = `
-        <svg viewBox="0 0 24 24">
-            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-        </svg>`;
+        const searchIconSvg = `<svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>`;
 
-        const html = list.map((item, i) => {
-            let text = item.text;
+        suggestList.innerHTML = '';
+
+        list.forEach((item, i) => {
+            const el = document.createElement('div');
+            el.className = 'suggest-item';
+            el.dataset.index = i;
+
+            // SVG アイコン
+            const iconWrap = document.createElement('span');
+            iconWrap.innerHTML = searchIconSvg;
+            el.appendChild(iconWrap);
+
+            // テキスト（ハイライトがある場合のみ innerHTML、それ以外は textContent）
+            const span = document.createElement('span');
             if (highlight) {
                 const reg = new RegExp(`(${escapeReg(highlight)})`, 'gi');
-                text = text.replace(reg, '<strong>$1</strong>');
+                span.innerHTML = item.text
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                    .replace(reg, '<strong>$1</strong>');
+            } else {
+                span.textContent = item.text;
             }
-            
-            return `
-            <div class="suggest-item" data-index="${i}">
-                ${searchIconSvg}
-                <span>${text}</span>
-            </div>`;
-        }).join('');
+            el.appendChild(span);
 
-        suggestList.innerHTML = html;
-
-        suggestList.querySelectorAll('.suggest-item').forEach(el => {
             el.addEventListener('click', () => {
-                const idx = el.getAttribute('data-index');
-                const val = this.suggestions[idx].text;
-                this.performSearch(val);
+                const idx = Number(el.dataset.index);
+                const val = this.suggestions[idx]?.text;
+                if (val) this.performSearch(val);
             });
             el.addEventListener('mouseenter', () => {
-                this.activeIndex = parseInt(el.getAttribute('data-index'));
+                this.activeIndex = Number(el.dataset.index);
                 this.updateActiveHighlight();
             });
+
+            suggestList.appendChild(el);
         });
     },
 
     updateActiveHighlight() {
         const items = this.refs.suggestList.querySelectorAll('.suggest-item');
         items.forEach((el, i) => {
-            if (i === this.activeIndex) el.classList.add('active');
-            else el.classList.remove('active');
+            el.classList.toggle('active', i === this.activeIndex);
         });
     }
 };
@@ -217,71 +231,34 @@ document.addEventListener('DOMContentLoaded', () => app.init());
 // =============================================================================
 // PWAモードのオフライン検出機能
 // =============================================================================
-
-/**
- * PWAモードのオフライン検出
- * source=pwa パラメータが存在する場合、オフライン状態を監視
- */
 (function initPWAOfflineDetection() {
     const urlParams = new URLSearchParams(window.location.search);
     const isPWA = urlParams.get('source') === 'pwa';
-    
     if (!isPWA) return;
-    
-    console.log('PWAモードが有効です');
-    
-    // オフライン状態の監視
+
     function checkOnlineStatus() {
         if (!navigator.onLine) {
-            console.log('オフライン状態を検出しました');
             window.location.href = '/offline.html?source=pwa';
         }
     }
-    
-    // オフラインイベントのリスナー
-    window.addEventListener('offline', () => {
-        console.log('offline イベント発火');
-        checkOnlineStatus();
-    });
-    
-    // オンラインイベントのリスナー
-    window.addEventListener('online', () => {
-        console.log('online イベント発火 - 接続復旧');
-    });
-    
-    // ページアンロード前の接続チェック（フォールバック）
-    window.addEventListener('beforeunload', () => {
-        if (!navigator.onLine) {
-            checkOnlineStatus();
-        }
-    });
-    
-    // 初回ロード時のチェック
-    if (!navigator.onLine) {
-        checkOnlineStatus();
-    }
+
+    window.addEventListener('offline', checkOnlineStatus);
+    window.addEventListener('online', () => {});
+    window.addEventListener('beforeunload', checkOnlineStatus);
+
+    if (!navigator.onLine) checkOnlineStatus();
 })();
 
-/**
- * PWAモードでのリンク処理
- * すべての内部リンクにsource=pwaパラメータを付与
- */
 (function maintainPWAParameter() {
     const urlParams = new URLSearchParams(window.location.search);
     const isPWA = urlParams.get('source') === 'pwa';
-    
     if (!isPWA) return;
-    
+
     document.addEventListener('DOMContentLoaded', () => {
-        // すべてのリンクを取得
-        const links = document.querySelectorAll('a');
-        
-        links.forEach(link => {
-            // 内部リンクのみ処理
+        document.querySelectorAll('a').forEach(link => {
             if (link.hostname === window.location.hostname && link.href) {
                 try {
                     const url = new URL(link.href);
-                    // source=pwaパラメータを追加
                     if (!url.searchParams.has('source')) {
                         url.searchParams.set('source', 'pwa');
                         link.href = url.toString();
@@ -291,21 +268,22 @@ document.addEventListener('DOMContentLoaded', () => app.init());
                 }
             }
         });
-        
-        console.log('PWAモード: 内部リンクにパラメータを付与しました');
     });
-    
-    // フォーム送信時もパラメータを維持
+
     document.addEventListener('submit', (e) => {
         const form = e.target;
         if (form.method.toLowerCase() === 'get') {
-            const formAction = new URL(form.action || window.location.href);
-            if (formAction.hostname === window.location.hostname) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'source';
-                input.value = 'pwa';
-                form.appendChild(input);
+            try {
+                const formAction = new URL(form.action || window.location.href);
+                if (formAction.hostname === window.location.hostname) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'source';
+                    input.value = 'pwa';
+                    form.appendChild(input);
+                }
+            } catch (e) {
+                console.error('フォーム処理エラー:', e);
             }
         }
     });
